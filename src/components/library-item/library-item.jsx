@@ -1,4 +1,5 @@
 import bindAll from 'lodash.bindall';
+import {FormattedMessage} from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -10,14 +11,31 @@ class LibraryItem extends React.PureComponent {
     constructor (props) {
         super(props);
         bindAll(this, [
+            'handleBlur',
             'handleClick',
+            'handleFocus',
+            'handleKeyPress',
             'handleMouseEnter',
             'handleMouseLeave'
         ]);
     }
+    handleBlur () {
+        this.props.onBlur(this.props.id);
+    }
+    handleFocus () {
+        this.props.onFocus(this.props.id);
+    }
     handleClick (e) {
-        this.props.onSelect(this.props.id);
+        if (!this.props.disabled) {
+            this.props.onSelect(this.props.id);
+        }
         e.preventDefault();
+    }
+    handleKeyPress (e) {
+        if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            this.props.onSelect(this.props.id);
+        }
     }
     handleMouseEnter () {
         this.props.onMouseEnter(this.props.id);
@@ -28,10 +46,25 @@ class LibraryItem extends React.PureComponent {
     render () {
         return this.props.featured ? (
             <div
-                className={classNames(styles.libraryItem, styles.featuredItem)}
+                className={classNames(
+                    styles.libraryItem,
+                    styles.featuredItem,
+                    {
+                        [styles.disabled]: this.props.disabled
+                    }
+                )}
                 onClick={this.handleClick}
             >
-                <div>
+                <div className={styles.featuredImageContainer}>
+                    {this.props.disabled ? (
+                        <div className={styles.comingSoonText}>
+                            <FormattedMessage
+                                defaultMessage="Coming Soon"
+                                description="Label for extensions that are not yet implemented"
+                                id="gui.extensionLibrary.comingSoon"
+                            />
+                        </div>
+                    ) : null}
                     <img
                         className={styles.featuredImage}
                         src={this.props.iconURL}
@@ -48,7 +81,12 @@ class LibraryItem extends React.PureComponent {
         ) : (
             <Box
                 className={styles.libraryItem}
+                role="button"
+                tabIndex="0"
+                onBlur={this.handleBlur}
                 onClick={this.handleClick}
+                onFocus={this.handleFocus}
+                onKeyPress={this.handleKeyPress}
                 onMouseEnter={this.handleMouseEnter}
                 onMouseLeave={this.handleMouseLeave}
             >
@@ -69,13 +107,20 @@ class LibraryItem extends React.PureComponent {
 
 LibraryItem.propTypes = {
     description: PropTypes.string,
+    disabled: PropTypes.bool,
     featured: PropTypes.bool,
     iconURL: PropTypes.string.isRequired,
     id: PropTypes.number.isRequired,
     name: PropTypes.string.isRequired,
+    onBlur: PropTypes.func,
+    onFocus: PropTypes.func,
     onMouseEnter: PropTypes.func.isRequired,
     onMouseLeave: PropTypes.func.isRequired,
     onSelect: PropTypes.func.isRequired
+};
+
+LibraryItem.defaultProps = {
+    disabled: false
 };
 
 export default LibraryItem;

@@ -44,7 +44,8 @@ export default function (vm) {
 
     const backdropsMenu = function () {
         if (vm.runtime.targets[0] && vm.runtime.targets[0].sprite.costumes.length > 0) {
-            return vm.runtime.targets[0].sprite.costumes.map(costume => [costume.name, costume.name]);
+            return vm.runtime.targets[0].sprite.costumes.map(costume => [costume.name, costume.name])
+                .concat([['next backdrop', 'next backdrop'], ['previous backdrop', 'previous backdrop']]);
         }
         return [['', '']];
     };
@@ -110,16 +111,16 @@ export default function (vm) {
 
     ScratchBlocks.Blocks.motion_goto_menu.init = function () {
         const json = jsonForMenuBlock('TO', spriteMenu, motionColors, [
-            ['mouse-pointer', '_mouse_'],
-            ['random position', '_random_']
+            ['random position', '_random_'],
+            ['mouse-pointer', '_mouse_']
         ]);
         this.jsonInit(json);
     };
 
     ScratchBlocks.Blocks.motion_glideto_menu.init = function () {
         const json = jsonForMenuBlock('TO', spriteMenu, motionColors, [
-            ['mouse-pointer', '_mouse_'],
-            ['random position', '_random_']
+            ['random position', '_random_'],
+            ['mouse-pointer', '_mouse_']
         ]);
         this.jsonInit(json);
     };

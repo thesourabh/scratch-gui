@@ -15,34 +15,6 @@ const motion = function (isStage, targetId) {
                 </shadow>
             </value>
         </block>
-        <block type="motion_turnright">
-            <value name="DEGREES">
-                <shadow type="math_number">
-                    <field name="NUM">15</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="motion_turnleft">
-            <value name="DEGREES">
-                <shadow type="math_number">
-                    <field name="NUM">15</field>
-                </shadow>
-            </value>
-        </block>
-        ${blockSeparator}
-        <block type="motion_pointindirection">
-            <value name="DIRECTION">
-                <shadow type="math_angle">
-                    <field name="NUM">90</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="motion_pointtowards">
-            <value name="TOWARDS">
-                <shadow type="motion_pointtowards_menu">
-                </shadow>
-            </value>
-        </block>
         ${blockSeparator}
         <block type="motion_gotoxy">
             <value name="X">
@@ -87,6 +59,34 @@ const motion = function (isStage, targetId) {
             </value>
             <value name="TO">
                 <shadow type="motion_glideto_menu">
+                </shadow>
+            </value>
+        </block>
+        ${blockSeparator}
+        <block type="motion_turnright">
+            <value name="DEGREES">
+                <shadow type="math_number">
+                    <field name="NUM">15</field>
+                </shadow>
+            </value>
+        </block>
+        <block type="motion_turnleft">
+            <value name="DEGREES">
+                <shadow type="math_number">
+                    <field name="NUM">15</field>
+                </shadow>
+            </value>
+        </block>
+        <block type="motion_pointindirection">
+            <value name="DIRECTION">
+                <shadow type="math_angle">
+                    <field name="NUM">90</field>
+                </shadow>
+            </value>
+        </block>
+        <block type="motion_pointtowards">
+            <value name="TOWARDS">
+                <shadow type="motion_pointtowards_menu">
                 </shadow>
             </value>
         </block>
@@ -175,9 +175,6 @@ const looks = function (isStage, targetId) {
             </value>
         </block>
         ${blockSeparator}
-        <block type="looks_show"/>
-        <block type="looks_hide"/>
-        ${blockSeparator}
         `}
         ${isStage ? `
             <block type="looks_switchbackdropto">
@@ -203,25 +200,8 @@ const looks = function (isStage, targetId) {
                     <shadow type="looks_backdrops"/>
                 </value>
             </block>
-        `}
-        ${blockSeparator}
-        <block type="looks_changeeffectby">
-            <value name="CHANGE">
-                <shadow type="math_number">
-                    <field name="NUM">10</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="looks_seteffectto">
-            <value name="VALUE">
-                <shadow type="math_number">
-                    <field name="NUM">10</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="looks_cleargraphiceffects"/>
-        ${blockSeparator}
-        ${isStage ? '' : `
+            <block type="looks_nextbackdrop"/>
+            ${blockSeparator}
             <block type="looks_changesizeby">
                 <value name="CHANGE">
                     <shadow type="math_number">
@@ -236,9 +216,30 @@ const looks = function (isStage, targetId) {
                     </shadow>
                 </value>
             </block>
-            ${blockSeparator}
-            <block type="looks_gotofront"/>
-            <block type="looks_gobacklayers">
+        `}
+        ${blockSeparator}
+        <block type="looks_changeeffectby">
+            <value name="CHANGE">
+                <shadow type="math_number">
+                    <field name="NUM">25</field>
+                </shadow>
+            </value>
+        </block>
+        <block type="looks_seteffectto">
+            <value name="VALUE">
+                <shadow type="math_number">
+                    <field name="NUM">0</field>
+                </shadow>
+            </value>
+        </block>
+        <block type="looks_cleargraphiceffects"/>
+        ${blockSeparator}
+        <block type="looks_show"/>
+        <block type="looks_hide"/>
+        ${blockSeparator}
+        ${isStage ? '' : `
+            <block type="looks_gotofrontback"/>
+            <block type="looks_goforwardbackwardlayers">
                 <value name="NUM">
                     <shadow type="math_integer">
                         <field name="NUM">1</field>
@@ -248,11 +249,10 @@ const looks = function (isStage, targetId) {
             ${blockSeparator}
         `}
         ${isStage ? `
-            <block id="backdroporder" type="looks_backdroporder"/>
-            <block id="backdropname" type="looks_backdropname"/>
+            <block id="backdropnumbername" type="looks_backdropnumbername"/>
         ` : `
-            <block id="${targetId}_costumeorder" type="looks_costumeorder"/>
-            <block id="backdropname" type="looks_backdropname"/>
+            <block id="${targetId}_costumenumbername" type="looks_costumenumbername"/>
+            <block id="backdropnumbername" type="looks_backdropnumbername"/>
             <block id="${targetId}_size" type="looks_size"/>
         `}
         ${categorySeparator}
@@ -332,8 +332,14 @@ const events = function () {
         <block type="event_whenbroadcastreceived">
         </block>
         <block type="event_broadcast">
+            <value name="BROADCAST_INPUT">
+                <shadow type="event_broadcast_menu"></shadow>
+            </value>
         </block>
         <block type="event_broadcastandwait">
+            <value name="BROADCAST_INPUT">
+              <shadow type="event_broadcast_menu"></shadow>
+            </value>
         </block>
         ${categorySeparator}
     </category>
@@ -425,14 +431,15 @@ const sensing = function (isStage) {
         </block>
         <block id="answer" type="sensing_answer"/>
         ${blockSeparator}
-        <block type="sensing_keypressed">
-            <value name="KEY_OPTION">
-                <shadow type="sensing_keyoptions"/>
-            </value>
-        </block>
+        <block type="sensing_keypressed"/>
         <block type="sensing_mousedown"/>
         <block type="sensing_mousex"/>
         <block type="sensing_mousey"/>
+        ${isStage ? '' : `
+            ${blockSeparator}
+            '<block type="sensing_setdragmode" id="sensing_setdragmode"></block>'+
+            ${blockSeparator}
+        `}
         ${blockSeparator}
         <block id="loudness" type="sensing_loudness"/>
         ${blockSeparator}
@@ -440,19 +447,12 @@ const sensing = function (isStage) {
         <block type="sensing_resettimer"/>
         ${blockSeparator}
         <block id="of" type="sensing_of">
-            <value name="PROPERTY">
-                <shadow id="sensing_of_property_menu" type="sensing_of_property_menu"/>
-            </value>
             <value name="OBJECT">
                 <shadow id="sensing_of_object_menu" type="sensing_of_object_menu"/>
             </value>
         </block>
         ${blockSeparator}
-        <block id="current" type="sensing_current">
-            <value name="CURRENTMENU">
-                <shadow id="sensing_currentmenu" type="sensing_currentmenu"/>
-            </value>
-        </block>
+        <block id="current" type="sensing_current"/>
         <block type="sensing_dayssince2000"/>
         ${categorySeparator}
     </category>
@@ -641,16 +641,16 @@ const operators = function () {
     `;
 };
 
-const data = function () {
+const variables = function () {
     return `
-    <category name="Data" colour="#FF8C1A" secondaryColour="#DB6E00" custom="VARIABLE">
+    <category name="Variables" colour="#FF8C1A" secondaryColour="#DB6E00" custom="VARIABLE">
     </category>
     `;
 };
 
-const more = function () {
+const myBlocks = function () {
     return `
-    <category name="More" colour="#FF6680" secondaryColour="#FF4D6A" custom="PROCEDURE">
+    <category name="My Blocks" colour="#FF6680" secondaryColour="#FF4D6A" custom="PROCEDURE">
     </category>
     `;
 };
@@ -676,8 +676,8 @@ const makeToolboxXML = function (isStage, targetId, categoriesXML) {
         control(isStage, targetId), gap,
         sensing(isStage, targetId), gap,
         operators(isStage, targetId), gap,
-        data(isStage, targetId), gap,
-        more(isStage, targetId)
+        variables(isStage, targetId), gap,
+        myBlocks(isStage, targetId)
     ];
 
     if (categoriesXML) {

@@ -57,6 +57,7 @@ class Stage extends React.Component {
             this.props.height !== nextProps.height ||
             this.props.isColorPicking !== nextProps.isColorPicking ||
             this.state.colorInfo !== nextState.colorInfo ||
+            this.props.isFullScreen !== nextProps.isFullScreen ||
             this.state.question !== nextState.question;
     }
     componentDidUpdate (prevProps) {
@@ -65,6 +66,8 @@ class Stage extends React.Component {
         } else if (!this.props.isColorPicking && prevProps.isColorPicking) {
             this.stopColorPickingLoop();
         }
+        this.updateRect();
+        this.renderer.resize(this.rect.width, this.rect.height);
     }
     componentWillUnmount () {
         this.detachMouseEvents(this.canvas);
@@ -192,13 +195,13 @@ class Stage extends React.Component {
         this.updateRect();
         const {x, y} = getEventXY(e);
         const mousePosition = [x - this.rect.left, y - this.rect.top];
-        if (e.button === 0) {
+        if (e.button === 0 || e instanceof TouchEvent) {
             this.setState({
                 mouseDown: true,
                 mouseDownPosition: mousePosition,
                 mouseDownTimeoutId: setTimeout(
                     this.onStartDrag.bind(this, mousePosition[0], mousePosition[1]),
-                    500
+                    400
                 )
             });
         }
@@ -276,6 +279,7 @@ class Stage extends React.Component {
 Stage.propTypes = {
     height: PropTypes.number,
     isColorPicking: PropTypes.bool,
+    isFullScreen: PropTypes.bool.isRequired,
     onActivateColorPicker: PropTypes.func,
     onDeactivateColorPicker: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired,
@@ -283,7 +287,8 @@ Stage.propTypes = {
 };
 
 const mapStateToProps = state => ({
-    isColorPicking: state.colorPicker.active
+    isColorPicking: state.colorPicker.active,
+    isFullScreen: state.stageSize.isFullScreen
 });
 
 const mapDispatchToProps = dispatch => ({

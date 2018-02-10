@@ -16,6 +16,7 @@ exports[`SpriteSelectorItemComponent matches snapshot when selected 1`] = `
     className=""
     onClick={[Function]}
     role="button"
+    tabIndex="0"
   >
     <img
       className={undefined}
@@ -25,6 +26,12 @@ exports[`SpriteSelectorItemComponent matches snapshot when selected 1`] = `
   <canvas
     className={undefined}
     height={32}
+    style={
+      Object {
+        "height": "32px",
+        "width": "32px",
+      }
+    }
     width={32}
   />
   <div

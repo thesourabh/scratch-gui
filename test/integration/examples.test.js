@@ -13,10 +13,6 @@ const {
     loadUri
 } = new SeleniumHelper();
 
-const errorWhitelist = [
-    'The play() request was interrupted by a call to pause()'
-];
-
 let driver;
 
 describe('player example', () => {
@@ -37,7 +33,7 @@ describe('player example', () => {
         await clickXpath('//img[@title="Go"]');
         await new Promise(resolve => setTimeout(resolve, 2000));
         await clickXpath('//img[@title="Stop"]');
-        const logs = await getLogs(errorWhitelist);
+        const logs = await getLogs();
         await expect(logs).toEqual([]);
     });
 });
@@ -60,7 +56,7 @@ describe('blocks example', () => {
         await clickXpath('//img[@title="Go"]');
         await new Promise(resolve => setTimeout(resolve, 2000));
         await clickXpath('//img[@title="Stop"]');
-        const logs = await getLogs(errorWhitelist);
+        const logs = await getLogs();
         await expect(logs).toEqual([]);
     });
 
@@ -72,17 +68,17 @@ describe('blocks example', () => {
         await clickText('Control');
         await clickText('Sensing');
         await clickText('Operators');
-        await clickText('Data');
+        await clickText('Variables');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for scroll animation
-        await clickText('Create variable...');
+        await clickText('Make a Variable');
         let el = await findByXpath("//input[@placeholder='']");
         await el.sendKeys('score');
         await clickButton('OK');
-        await clickText('Create variable...');
+        await clickText('Make a Variable');
         el = await findByXpath("//input[@placeholder='']");
         await el.sendKeys('second variable');
         await clickButton('OK');
-        const logs = await getLogs(errorWhitelist);
+        const logs = await getLogs();
         await expect(logs).toEqual([]);
     });
 });

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import bindAll from 'lodash.bindall';
-import {FormattedMessage} from 'react-intl';
+import {defineMessages, intlShape, injectIntl} from 'react-intl';
 import VM from 'scratch-vm';
 
 import AssetPanel from '../components/asset-panel/asset-panel.jsx';
@@ -10,10 +10,12 @@ import addSoundFromLibraryIcon from '../components/asset-panel/icon--add-sound-l
 import addSoundFromRecordingIcon from '../components/asset-panel/icon--add-sound-record.svg';
 import RecordModal from './record-modal.jsx';
 import SoundEditor from './sound-editor.jsx';
+import SoundLibrary from './sound-library.jsx';
 
 import {connect} from 'react-redux';
 
 import {
+    closeSoundLibrary,
     openSoundLibrary,
     openSoundRecorder
 } from '../reducers/modals';
@@ -23,7 +25,8 @@ class SoundTab extends React.Component {
         super(props);
         bindAll(this, [
             'handleSelectSound',
-            'handleDeleteSound'
+            'handleDeleteSound',
+            'handleNewSound'
         ]);
         this.state = {selectedSoundIndex: 0};
     }
@@ -50,8 +53,18 @@ class SoundTab extends React.Component {
         this.props.vm.deleteSound(soundIndex);
     }
 
+    handleNewSound () {
+        if (!this.props.vm.editingTarget) {
+            return null;
+        }
+        const sprite = this.props.vm.editingTarget.sprite;
+        const sounds = sprite.sounds ? sprite.sounds : [];
+        this.setState({selectedSoundIndex: Math.max(sounds.length - 1, 0)});
+    }
+
     render () {
         const {
+            intl,
             vm,
             onNewSoundFromLibraryClick,
             onNewSoundFromRecordingClick
@@ -70,29 +83,27 @@ class SoundTab extends React.Component {
             }
         )) : [];
 
-        const recordSoundMsg = (
-            <FormattedMessage
-                defaultMessage="Record Sound"
-                description="Button to record a sound in the editor tab"
-                id="gui.soundTab.recordSound"
-            />
-        );
-        const addSoundMsg = (
-            <FormattedMessage
-                defaultMessage="Add Sound"
-                description="Button to add a sound in the editor tab"
-                id="gui.soundTab.addSound"
-            />
-        );
+        const messages = defineMessages({
+            recordSound: {
+                defaultMessage: 'Record Sound',
+                description: 'Button to record a sound in the editor tab',
+                id: 'gui.soundTab.recordSound'
+            },
+            addSound: {
+                defaultMessage: 'Add Sound',
+                description: 'Button to add a sound in the editor tab',
+                id: 'gui.soundTab.addSound'
+            }
+        });
 
         return (
             <AssetPanel
                 buttons={[{
-                    message: recordSoundMsg,
+                    message: intl.formatMessage(messages.recordSound),
                     img: addSoundFromRecordingIcon,
                     onClick: onNewSoundFromRecordingClick
                 }, {
-                    message: addSoundMsg,
+                    message: intl.formatMessage(messages.addSound),
                     img: addSoundFromLibraryIcon,
                     onClick: onNewSoundFromLibraryClick
                 }]}
@@ -104,11 +115,20 @@ class SoundTab extends React.Component {
                 onDeleteClick={this.handleDeleteSound}
                 onItemClick={this.handleSelectSound}
             >
-                {sprite.sounds && sprite.sounds.length > 0 ? (
+                {sprite.sounds && sprite.sounds[this.state.selectedSoundIndex] ? (
                     <SoundEditor soundIndex={this.state.selectedSoundIndex} />
                 ) : null}
                 {this.props.soundRecorderVisible ? (
-                    <RecordModal />
+                    <RecordModal
+                        onNewSound={this.handleNewSound}
+                    />
+                ) : null}
+                {this.props.soundLibraryVisible ? (
+                    <SoundLibrary
+                        vm={this.props.vm}
+                        onNewSound={this.handleNewSound}
+                        onRequestClose={this.props.onRequestCloseSoundLibrary}
+                    />
                 ) : null}
             </AssetPanel>
         );
@@ -117,8 +137,11 @@ class SoundTab extends React.Component {
 
 SoundTab.propTypes = {
     editingTarget: PropTypes.string,
+    intl: intlShape,
     onNewSoundFromLibraryClick: PropTypes.func.isRequired,
     onNewSoundFromRecordingClick: PropTypes.func.isRequired,
+    onRequestCloseSoundLibrary: PropTypes.func.isRequired,
+    soundLibraryVisible: PropTypes.bool,
     soundRecorderVisible: PropTypes.bool,
     sprites: PropTypes.shape({
         id: PropTypes.shape({
@@ -139,6 +162,7 @@ const mapStateToProps = state => ({
     editingTarget: state.targets.editingTarget,
     sprites: state.targets.sprites,
     stage: state.targets.stage,
+    soundLibraryVisible: state.modals.soundLibrary,
     soundRecorderVisible: state.modals.soundRecorder
 });
 
@@ -149,10 +173,13 @@ const mapDispatchToProps = dispatch => ({
     },
     onNewSoundFromRecordingClick: () => {
         dispatch(openSoundRecorder());
+    },
+    onRequestCloseSoundLibrary: () => {
+        dispatch(closeSoundLibrary());
     }
 });
 
-export default connect(
+export default injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
-)(SoundTab);
+)(SoundTab));

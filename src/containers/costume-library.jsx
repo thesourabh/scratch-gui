@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import VM from 'scratch-vm';
 
+import analytics from '../lib/analytics';
 import costumeLibraryContent from '../lib/libraries/costumes.json';
 import LibraryComponent from '../components/library/library.jsx';
 
@@ -22,7 +23,14 @@ class CostumeLibrary extends React.PureComponent {
             bitmapResolution: item.info.length > 2 ? item.info[2] : 1,
             skinId: null
         };
-        this.props.vm.addCostume(item.md5, vmCostume);
+        this.props.vm.addCostume(item.md5, vmCostume).then(() => {
+            this.props.onNewCostume();
+        });
+        analytics.event({
+            category: 'library',
+            action: 'Select Costume',
+            label: item.name
+        });
     }
     render () {
         return (
@@ -37,6 +45,7 @@ class CostumeLibrary extends React.PureComponent {
 }
 
 CostumeLibrary.propTypes = {
+    onNewCostume: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired
 };

@@ -6,33 +6,43 @@ import Box from '../box/box.jsx';
 import Loupe from '../loupe/loupe.jsx';
 import MonitorList from '../../containers/monitor-list.jsx';
 import Question from '../../containers/question.jsx';
+import {getStageSize} from '../../lib/screen-utils.js';
 import styles from './stage.css';
 
 const StageComponent = props => {
     const {
         canvasRef,
-        width,
         height,
+        isColorPicking,
+        isFullScreen,
+        width,
         colorInfo,
         onDeactivateColorPicker,
-        isColorPicking,
         question,
         onQuestionAnswered,
         ...boxProps
     } = props;
+
+    const stageSize = getStageSize(isFullScreen, height, width);
+    
     return (
         <div>
             <Box
-                className={classNames(styles.stageWrapper, {
-                    [styles.withColorPicker]: isColorPicking
+                className={classNames({
+                    [styles.stageWrapper]: !isFullScreen,
+                    [styles.stageWrapperOverlay]: isFullScreen,
+                    [styles.withColorPicker]: !isFullScreen && isColorPicking
                 })}
             >
                 <Box
-                    className={styles.stage}
+                    className={classNames(
+                        styles.stage,
+                        {[styles.stageOverlayContent]: isFullScreen}
+                    )}
                     componentRef={canvasRef}
                     element="canvas"
-                    height={height}
-                    width={width}
+                    height={stageSize.height}
+                    width={stageSize.width}
                     {...boxProps}
                 />
                 <Box className={styles.monitorWrapper}>
@@ -44,10 +54,22 @@ const StageComponent = props => {
                     </Box>
                 ) : null}
                 {question === null ? null : (
-                    <Question
-                        question={question}
-                        onQuestionAnswered={onQuestionAnswered}
-                    />
+                    <div
+                        className={classNames(
+                            styles.stageOverlayContent,
+                            styles.stageOverlayContentBorderOverride
+                        )}
+                    >
+                        <div
+                            className={styles.questionWrapper}
+                            style={{width: stageSize.width}}
+                        >
+                            <Question
+                                question={question}
+                                onQuestionAnswered={onQuestionAnswered}
+                            />
+                        </div>
+                    </div>
                 )}
             </Box>
             {isColorPicking ? (
@@ -64,6 +86,7 @@ StageComponent.propTypes = {
     colorInfo: Loupe.propTypes.colorInfo,
     height: PropTypes.number,
     isColorPicking: PropTypes.bool,
+    isFullScreen: PropTypes.bool.isRequired,
     onDeactivateColorPicker: PropTypes.func,
     onQuestionAnswered: PropTypes.func,
     question: PropTypes.string,
