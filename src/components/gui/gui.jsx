@@ -14,11 +14,12 @@ import TargetPane from '../../containers/target-pane.jsx';
 import SoundTab from '../../containers/sound-tab.jsx';
 import StageHeader from '../../containers/stage-header.jsx';
 import Stage from '../../containers/stage.jsx';
-
+import Loader from '../loader/loader.jsx';
 import Box from '../box/box.jsx';
 import FeedbackForm from '../feedback-form/feedback-form.jsx';
 import MenuBar from '../menu-bar/menu-bar.jsx';
 import PreviewModal from '../../containers/preview-modal.jsx';
+import ImportModal from '../../containers/import-modal.jsx';
 import WebGlModal from '../../containers/webgl-modal.jsx';
 
 import layout from '../../lib/layout-constants.js';
@@ -33,18 +34,26 @@ const messages = defineMessages({
     }
 });
 
+// Cache this value to only retreive it once the first time.
+// Assume that it doesn't change for a session.
+let isRendererSupported = null;
+
 const GUIComponent = props => {
     const {
+        activeTabIndex,
         basePath,
+        blocksTabVisible,
         children,
-        enableExtensions,
-        intl,
+        costumesTabVisible,
         feedbackFormVisible,
-        vm,
-        previewInfoVisible,
+        importInfoVisible,
+        intl,
+        loading,
         onExtensionButtonClick,
-        onTabSelect,
-        tabIndex,
+        onActivateTab,
+        previewInfoVisible,
+        soundsTabVisible,
+        vm,
         ...componentProps
     } = props;
     if (children) {
@@ -64,7 +73,9 @@ const GUIComponent = props => {
         tabSelected: classNames(tabStyles.reactTabsTabSelected, styles.isSelected)
     };
 
-    const isRendererSupported = Renderer.isSupported();
+    if (isRendererSupported === null) {
+        isRendererSupported = Renderer.isSupported();
+    }
 
     return (
         <Box
@@ -73,6 +84,12 @@ const GUIComponent = props => {
         >
             {previewInfoVisible ? (
                 <PreviewModal />
+            ) : null}
+            {loading ? (
+                <Loader />
+            ) : null}
+            {importInfoVisible ? (
+                <ImportModal />
             ) : null}
             {feedbackFormVisible ? (
                 <FeedbackForm />
@@ -87,9 +104,10 @@ const GUIComponent = props => {
                         <Tabs
                             className={tabClassNames.tabs}
                             forceRenderTabPanel={true} // eslint-disable-line react/jsx-boolean-value
+                            selectedIndex={activeTabIndex}
                             selectedTabClassName={tabClassNames.tabSelected}
                             selectedTabPanelClassName={tabClassNames.tabPanelSelected}
-                            onSelect={onTabSelect}
+                            onSelect={onActivateTab}
                         >
                             <TabList className={tabClassNames.tabList}>
                                 <Tab className={tabClassNames.tab}>Blocks</Tab>
@@ -100,7 +118,7 @@ const GUIComponent = props => {
                                 <Box className={styles.blocksWrapper}>
                                     <Blocks
                                         grow={1}
-                                        isVisible={tabIndex === 0} // Blocks tab
+                                        isVisible={blocksTabVisible}
                                         options={{
                                             media: `${basePath}static/blocks-media/`
                                         }}
@@ -109,9 +127,7 @@ const GUIComponent = props => {
                                 </Box>
                                 <Box className={styles.extensionButtonContainer}>
                                     <button
-                                        className={classNames(styles.extensionButton, {
-                                            [styles.hidden]: !enableExtensions
-                                        })}
+                                        className={styles.extensionButton}
                                         title={intl.formatMessage(messages.addExtension)}
                                         onClick={onExtensionButtonClick}
                                     >
@@ -124,10 +140,10 @@ const GUIComponent = props => {
                                 </Box>
                             </TabPanel>
                             <TabPanel className={tabClassNames.tabPanel}>
-                                {tabIndex === 1 ? <CostumeTab vm={vm} /> : null}
+                                {costumesTabVisible ? <CostumeTab vm={vm} /> : null}
                             </TabPanel>
                             <TabPanel className={tabClassNames.tabPanel}>
-                                {tabIndex === 2 ? <SoundTab vm={vm} /> : null}
+                                {soundsTabVisible ? <SoundTab vm={vm} /> : null}
                             </TabPanel>
                         </Tabs>
                     </Box>
@@ -162,15 +178,20 @@ const GUIComponent = props => {
     );
 };
 GUIComponent.propTypes = {
+    activeTabIndex: PropTypes.number,
     basePath: PropTypes.string,
+    blocksTabVisible: PropTypes.bool,
     children: PropTypes.node,
-    enableExtensions: PropTypes.bool,
+    costumesTabVisible: PropTypes.bool,
     feedbackFormVisible: PropTypes.bool,
+    importInfoVisible: PropTypes.bool,
     intl: intlShape.isRequired,
+    loading: PropTypes.bool,
+    onActivateTab: PropTypes.func,
     onExtensionButtonClick: PropTypes.func,
     onTabSelect: PropTypes.func,
     previewInfoVisible: PropTypes.bool,
-    tabIndex: PropTypes.number,
+    soundsTabVisible: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired
 };
 GUIComponent.defaultProps = {

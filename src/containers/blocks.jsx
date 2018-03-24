@@ -95,9 +95,11 @@ class Blocks extends React.Component {
         }
 
         if (prevProps.toolboxXML !== this.props.toolboxXML) {
-            const selectedCategoryName = this.workspace.toolbox_.getSelectedItem().name_;
+            const categoryName = this.workspace.toolbox_.getSelectedCategoryName();
+            const offset = this.workspace.toolbox_.getCategoryScrollOffset();
             this.workspace.updateToolbox(this.props.toolboxXML);
-            this.workspace.toolbox_.setSelectedCategoryByName(selectedCategoryName);
+            const currentCategoryPos = this.workspace.toolbox_.getCategoryPositionByName(categoryName);
+            this.workspace.toolbox_.setFlyoutScrollPos(currentCategoryPos + offset);
         }
         if (this.props.isVisible === prevProps.isVisible) {
             return;
@@ -252,7 +254,10 @@ class Blocks extends React.Component {
     }
     handleCustomProceduresClose (data) {
         this.props.onRequestCloseCustomProcedures(data);
-        this.workspace.refreshToolboxSelection_();
+        const ws = this.workspace;
+        ws.refreshToolboxSelection_();
+        // @todo ensure this does not break on localization
+        ws.toolbox_.scrollToCategoryByName('My Blocks');
     }
     render () {
         /* eslint-disable no-unused-vars */

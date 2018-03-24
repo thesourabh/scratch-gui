@@ -31,6 +31,7 @@ class Stage extends React.Component {
             'onMouseDown',
             'onStartDrag',
             'onStopDrag',
+            'onWheel',
             'updateRect',
             'questionListener',
             'setCanvas'
@@ -98,6 +99,7 @@ class Stage extends React.Component {
         document.addEventListener('touchend', this.onMouseUp);
         canvas.addEventListener('mousedown', this.onMouseDown);
         canvas.addEventListener('touchstart', this.onMouseDown);
+        canvas.addEventListener('wheel', this.onWheel);
     }
     detachMouseEvents (canvas) {
         document.removeEventListener('mousemove', this.onMouseMove);
@@ -106,6 +108,7 @@ class Stage extends React.Component {
         document.removeEventListener('touchend', this.onMouseUp);
         canvas.removeEventListener('mousedown', this.onMouseDown);
         canvas.removeEventListener('touchstart', this.onMouseDown);
+        canvas.removeEventListener('wheel', this.onWheel);
     }
     attachRectEvents () {
         window.addEventListener('resize', this.updateRect);
@@ -183,18 +186,18 @@ class Stage extends React.Component {
             mouseDown: false,
             mouseDownPosition: null
         });
+        const data = {
+            isDown: false,
+            x: x - this.rect.left,
+            y: y - this.rect.top,
+            canvasWidth: this.rect.width,
+            canvasHeight: this.rect.height,
+            wasDragged: this.state.isDragging
+        };
         if (this.state.isDragging) {
             this.onStopDrag();
-        } else {
-            const data = {
-                isDown: false,
-                x: x - this.rect.left,
-                y: y - this.rect.top,
-                canvasWidth: this.rect.width,
-                canvasHeight: this.rect.height
-            };
-            this.props.vm.postIOData('mouse', data);
         }
+        this.props.vm.postIOData('mouse', data);
     }
     onMouseDown (e) {
         this.updateRect();
@@ -231,6 +234,13 @@ class Stage extends React.Component {
             this.props.onDeactivateColorPicker(colorString);
             this.setState({colorInfo: null});
         }
+    }
+    onWheel (e) {
+        const data = {
+            deltaX: e.deltaX,
+            deltaY: e.deltaY
+        };
+        this.props.vm.postIOData('mouseWheel', data);
     }
     cancelMouseDownTimeout () {
         if (this.state.mouseDownTimeoutId !== null) {
