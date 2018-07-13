@@ -90,6 +90,20 @@
     height: 34px;
 }
 
+.checkcode-button {
+    background: $data-primary;
+    height: 32px;
+    box-shadow: 0 0 0 1px $ui-black-transparent;
+}
+
+.custom-button {
+    margin-left: 450px;
+}
+
+.arrow-button {
+    font-size: 40px;
+}
+
 .divider {
     margin: 0 .5rem;
     height: 34px;
@@ -127,6 +141,10 @@
 }
 
 .coming-soon >:not(.coming-soon-tooltip) {
+    opacity: 0.5;
+}
+
+.disable-button {
     opacity: 0.5;
 }
 

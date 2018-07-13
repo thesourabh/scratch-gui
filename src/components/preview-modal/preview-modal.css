@@ -65,12 +65,14 @@
 
 .button-row button.no-button {
     color: $motion-primary;
+    display: none;
 }
 
 .button-row button.view-project-button {
     background: $pen-primary;
     border-color: $pen-primary;
     color: white;
+    display: none;
 }
 
 .button-row button + button {

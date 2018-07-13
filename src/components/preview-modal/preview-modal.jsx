@@ -28,14 +28,14 @@ const PreviewModal = ({intl, ...props}) => (
         <Box className={styles.body}>
             <h2>
                 <FormattedMessage
-                    defaultMessage="Welcome to the Scratch 3.0 Preview"
+                    defaultMessage="Welcome to the Scratch with Improvables Preview"
                     description="Header for Preview Info Modal"
                     id="gui.previewInfo.welcome"
                 />
             </h2>
             <p>
                 <FormattedMessage
-                    defaultMessage="We're working on the next generation of Scratch. We're excited for you to try it!"
+                    defaultMessage="We're working on the next generation of Scratch with refactoring support. We're excited for you to try it!"
                     description="Invitation to try 3.0 preview"
                     id="gui.previewInfo.invitation"
                 />

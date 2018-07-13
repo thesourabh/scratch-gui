@@ -24,6 +24,13 @@ import {
     editMenuOpen
 } from '../../reducers/menus';
 
+import {
+    clearBoxes,
+    nextSmell,
+    checkCode
+} from '../../reducers/improvable';
+
+
 import styles from './menu-bar.css';
 
 import mystuffIcon from './icon--mystuff.png';
@@ -297,6 +304,56 @@ const MenuBar = props => (
                 </Button>
             </a>
         </div>
+        {/* comment: new item for checking added */}
+        <div className={classNames(styles.menuBarItem, styles.customButton)}>
+            <Button
+                className={styles.checkcodeButton}
+                onClick={props.onCheckCode}
+            >
+                <FormattedMessage
+                    defaultMessage="Look for Improvables!"
+                    description="Label for check code button"
+                    id="gui.menuBar.checkCode"
+                />
+            </Button>
+        </div>
+        <div className={classNames(styles.menuBarItem)}>
+            <Button
+                className={styles.communityButton}
+                onClick={props.onClear}
+            >
+                <FormattedMessage
+                    defaultMessage="Clear"
+                    description="Label for clear button"
+                    id="gui.menuBar.clear"
+                />
+            </Button>
+        </div>
+        <div className={classNames(styles.menuBarItem)}>
+            <Button
+                className={styles.arrowButton}
+                onClick={props.onPrevSmell}
+            >
+                <FormattedMessage
+                    defaultMessage="&#8592;"
+                    description="Label for prev smell button"
+                    id="gui.menuBar.prevSmell"
+                />
+            </Button>
+        </div>
+        <div className={classNames(styles.menuBarItem)}>
+            <Button
+                className={styles.arrowButton}
+                onClick={props.onNextSmell}
+            >
+                <FormattedMessage
+                    defaultMessage="&#8594;"
+                    description="Label for next smell button"
+                    id="gui.menuBar.nextSmell"
+                />
+            </Button>
+        </div>
+        {/* comment: new item for checking ends here */}
         <div className={styles.accountInfoWrapper}>
             <div
                 aria-label="How-to Library"
@@ -357,7 +414,11 @@ MenuBar.propTypes = {
     onClickFile: PropTypes.func,
     onOpenTipLibrary: PropTypes.func,
     onRequestCloseEdit: PropTypes.func,
-    onRequestCloseFile: PropTypes.func
+    onRequestCloseFile: PropTypes.func,
+    onCheckCode: PropTypes.func,
+    onClear: PropTypes.func,
+    onNextSmell: PropTypes.func,
+    onPrevSmell: PropTypes.func
 };
 
 const mapStateToProps = state => ({
@@ -370,7 +431,11 @@ const mapDispatchToProps = dispatch => ({
     onClickFile: () => dispatch(openFileMenu()),
     onRequestCloseFile: () => dispatch(closeFileMenu()),
     onClickEdit: () => dispatch(openEditMenu()),
-    onRequestCloseEdit: () => dispatch(closeEditMenu())
+    onRequestCloseEdit: () => dispatch(closeEditMenu()),
+    onCheckCode: () => dispatch(checkCode()),
+    onClear: () => dispatch(clearBoxes()),
+    onNextSmell: () => dispatch(nextSmell(1)),
+    onPrevSmell: () => dispatch(nextSmell(-1))
 });
 
 export default connect(

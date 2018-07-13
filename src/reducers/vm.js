@@ -9,19 +9,22 @@ const initialState = defaultVM;
 const reducer = function (state, action) {
     if (typeof state === 'undefined') state = initialState;
     switch (action.type) {
-    case SET_VM:
+        case SET_VM:
         return action.vm;
-    default:
+        default:
         return state;
     }
 };
+
 const setVM = function (vm) {
     return {
         type: SET_VM,
         vm: vm
     };
 };
+
 export {
     reducer as default,
-    setVM
+    setVM,
+    defaultVM,
 };
