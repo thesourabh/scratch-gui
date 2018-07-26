@@ -64,15 +64,15 @@
 }
 
 .button-row button.no-button {
-    color: $motion-primary;
-    display: none;
+    background: $control-primary;
+    border-color: $control-primary;
+    color: white;
 }
 
 .button-row button.view-project-button {
     background: $pen-primary;
     border-color: $pen-primary;
     color: white;
-    display: none;
 }
 
 .button-row button + button {

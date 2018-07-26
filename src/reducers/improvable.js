@@ -24,7 +24,7 @@ const checkCode = function () {
 
     var xhr = new XMLHttpRequest();
     //var url = "http://0.0.0.0:8080/analyze";
-    var url = "https://engine.q4blocks.org/analyze";
+    var url = "https://engine.q4blocks.org:8080/analyze";
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-type", "application/json");
     xhr.onload = function() {
