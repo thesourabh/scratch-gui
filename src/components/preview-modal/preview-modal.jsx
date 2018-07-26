@@ -47,8 +47,8 @@ const PreviewModal = ({intl, ...props}) => (
                     onClick={props.onCancel}
                 >
                     <FormattedMessage
-                        defaultMessage="Not Now"
-                        description="Label for button to back out of trying Scratch 3.0 preview"
+                        defaultMessage="Try a sample project"
+                        description="Label for button to try a preloaded Scratch 3.0 preview"
                         id="gui.previewInfo.notnow"
                     />
                 </button>
@@ -77,7 +77,7 @@ const PreviewModal = ({intl, ...props}) => (
                     onClick={props.onViewProject}
                 >
                     <FormattedMessage
-                        defaultMessage="View 2.0 Project"
+                        defaultMessage="Try a 2.0 Project"
                         description="Label for button to import a 2.0 project"
                         id="gui.previewModal.viewproject"
                     />
