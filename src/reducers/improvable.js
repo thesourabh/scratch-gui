@@ -23,7 +23,6 @@ const checkCode = function () {
 
 
     var xhr = new XMLHttpRequest();
-    //var url = "http://0.0.0.0:8080/analyze";
     var url = "https://engine.q4blocks.org:8080/analyze";
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-type", "application/json");
@@ -80,10 +79,16 @@ const clearBoxes = function () {
 
 const nextSmell = function(num) {
     
-    if(((smellNumber+num)>=0) && ((smellNumber+num)<response[smellNames[smellType]][sprite].length)){
+    var maxSmellNumber = (smellType == 1)? response[smellNames[smellType]].length : response[smellNames[smellType]][sprite].length;
+    if(((smellNumber+num)>=0) && ((smellNumber+num)<maxSmellNumber)){
         smellNumber = smellNumber+num;
     } else {
-        if((sprite+num)>=0 && ((sprite+num)<response[smellNames[smellType]].length)){
+        if(smellType == 1){
+            smellType = smellType+num;
+            sprite = 0;
+            smellNumber = 0;
+            document.getElementsByClassName("sprite-selector_sprite_21WnR")[sprite].click();
+        } else if((sprite+num)>=0 && ((sprite+num)<response[smellNames[smellType]].length)){
             sprite = sprite+num;
             smellNumber = 0;
             document.getElementsByClassName("sprite-selector_sprite_21WnR")[sprite].click();
@@ -99,6 +104,7 @@ const nextSmell = function(num) {
             }
         }
     }
+    
     var workspace = Blockly.getMainWorkspace();
     workspace.removeHighlightBox();
     workspace.getFlyout().removeHighlightBox();
@@ -174,18 +180,25 @@ const handleLongScript = function (response, workspace) {
                 nextBlock = lastClickedBlock2.getNextBlock();
             }
         };
-
+        var substackBlocks = ["control_repeat_until","control_if","control_repeat","control_forever"];
         if(document.getElementById("moveBlockButton")) document.getElementById("moveBlockButton").onclick = function() {
             var text = '<xml xmlns="http://www.w3.org/1999/xhtml"> <variables></variables> <block type="procedures_call" id="'+generateRandomID()+'" x="280" y="257"><mutation proccode="New Block" argumentids="[]" warp="false"></mutation></block> </xml>';
             var xml = Blockly.Xml.textToDom(text);
             var newBlockCallId = Blockly.Xml.domToWorkspace(xml, workspace)[0];
             newBlockCall = workspace.getBlockById(newBlockCallId);
-            window.newBlockCall = newBlockCall;
-            window.prevBlock = prevBlock;
+            
             if(newBlockCall) {
-                prevBlock.connectToBlock(newBlockCall);
-                newBlockCall.connectToBlock(nextBlock);
+                if(substackBlocks.includes(prevBlock.type)){
+                    prevBlock.inputList[1].connection.connect(newBlockCall.previousConnection);
+                    newBlockCall.connectToBlock(nextBlock);
+                } else if(prevBlock.type == "control_if_else"){
+                    console.log("to do");
+                } else {
+                    prevBlock.connectToBlock(newBlockCall);
+                    newBlockCall.connectToBlock(nextBlock);
+                }
             }
+
             if(lastClickedBlock1) newBlock.connectToBlock(lastClickedBlock1)
                 document.removeEventListener("pointerup", storeLastClickedBlock);
             lastClickedBlock1.setGlowBlock(false);
@@ -197,6 +210,11 @@ const handleLongScript = function (response, workspace) {
 };
 
 const handleUncommunicativeName = function (response, workspace) {
+    if(response[smellNames[smellType]].length==0) {
+        nextSmell(1);
+        return;
+    }
+
     var msg = "";
     var smell = response[smellNames[smellType]][smellNumber];
     var str="";
