@@ -46,10 +46,13 @@ const checkCode = function () {
             var str = '<g id="learnImprovable" style="cursor:pointer;"><rect height="40" width="250" rx="5" ry="5" style="fill: rgb(243, 139, 45);stroke-width:5;stroke: rgb(243, 139, 45);" x="35" y="50"> </rect> <text style="fill: white;font-family: \'Helvetica Neue\', Helvetica, sans-serif;font-weight: bold" x="65" y="75">Learn about Improvables</text></g><g id="startButton" style="pointer-events: auto;cursor: pointer;"><rect height="40" width="180" rx="5" ry="5" style="fill: rgb(77, 150, 253);stroke-width:5;stroke:rgb(77, 150, 253);" x="65" y="150"> </rect> <text style="fill: white;font-family: \'Helvetica Neue\', Helvetica, sans-serif;font-weight: bold" x="95" y="175">Start Improving!</text></g>';
             workspace.explainHighlightBox("Hey there! \n That's great work! \n But guess what? This code can be made even better. Would you like to find how?",0,1);
             document.getElementById('options').innerHTML=str;
-            if(document.getElementById("startButton")) document.getElementById("startButton").onclick = function() {
+            document.getElementById("startButton").onclick = function() {
                 clearBoxes();
                 nextSmell(1);
-            }
+            };
+            document.getElementById("learnImprovable").onclick = function() {
+            window.open("https://q4blocks.org/resources/improvables","_blank","noopener noreferrer");
+            };
         } else {
             workspace.explainHighlightBox("Hey there! \n That's great work! \n This code is a perfect masterpiece!",0,1);
         }
