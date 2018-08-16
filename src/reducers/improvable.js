@@ -7,6 +7,7 @@ var response = null;
 const smellNames = ["LongScript","UncommunicativeName","DuplicateCode","DuplicateExpression"];
 
 const checkCode = function () {
+    mixpanel.track("ImprovableAnalysis Triggered");
 
     // var oReq = new XMLHttpRequest();
     //oReq.open("GET", "http://localhost:8080/sb3webservice/sb3analysis?ID=149974792");
@@ -21,14 +22,29 @@ const checkCode = function () {
     sprite = 0;
     smellNumber = -1;
 
-
     var xhr = new XMLHttpRequest();
+    //var url = "http://0.0.0.0:8080/analyze";
     var url = "https://engine.q4blocks.org:8080/analyze";
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-type", "application/json");
     xhr.onload = function() {
         response = JSON.parse(xhr.responseText);
         var workspace = Blockly.getMainWorkspace();
+        if(response["error"]=="Unknown block type"){
+            mixpanel.track("Error Unknown block type");
+            workspace.explainHighlightBox("Uh oh! \n Looks like you have used a block which our tool does not support. \n Don't worry, we are working on it!",0,1);
+            return {
+                type: null,
+                menu: null
+            };
+        } else if(response["error"]) {
+            mixpanel.track("Error "+response['error']);
+            workspace.explainHighlightBox("Uh oh! \n Looks like we are facing a problem. \n You can report the issue by emailing the below error to quality4blocks@research.cs.vt.edu \n "+response['error'],0,1);
+            return {
+                type: null,
+                menu: null
+            };
+        }
         var smellPresent = 0;
         smellNames.forEach(function(smellName) {
             var i = 0;
@@ -43,18 +59,23 @@ const checkCode = function () {
             }
         });
         if(smellPresent==1){
+            mixpanel.track("Smells Present");
             var str = '<g id="learnImprovable" style="cursor:pointer;"><rect height="40" width="250" rx="5" ry="5" style="fill: rgb(243, 139, 45);stroke-width:5;stroke: rgb(243, 139, 45);" x="35" y="50"> </rect> <text style="fill: white;font-family: \'Helvetica Neue\', Helvetica, sans-serif;font-weight: bold" x="65" y="75">Learn about Improvables</text></g><g id="startButton" style="pointer-events: auto;cursor: pointer;"><rect height="40" width="180" rx="5" ry="5" style="fill: rgb(77, 150, 253);stroke-width:5;stroke:rgb(77, 150, 253);" x="65" y="150"> </rect> <text style="fill: white;font-family: \'Helvetica Neue\', Helvetica, sans-serif;font-weight: bold" x="95" y="175">Start Improving!</text></g>';
-            workspace.explainHighlightBox("Hey there! \n That's great work! \n But guess what? This code can be made even better. Would you like to find how?",0,1);
+            workspace.explainHighlightBox("Hey there! \n That's great work! \n But guess what? This code can be made even better. Improving your code can improve the popularity and the chances of your project to be remixed by others. Would you like to find how?",0,1);
             document.getElementById('options').innerHTML=str;
             document.getElementById("startButton").onclick = function() {
+                mixpanel.track("Started Refactoring");
                 clearBoxes();
                 nextSmell(1);
-            };
+                mixpanel.track("Finished Refactoring");
+            }
             document.getElementById("learnImprovable").onclick = function() {
-            window.open("https://q4blocks.org/resources/improvables","_blank","noopener noreferrer");
-            };
+                mixpanel.track("Viewed more info on Improvables");
+                window.open("https://q4blocks.org/resources/improvables","_blank","noopener noreferrer");
+            }
         } else {
             workspace.explainHighlightBox("Hey there! \n That's great work! \n This code is a perfect masterpiece!",0,1);
+            mixpanel.track("No Refactoring required");
         }
     };
     var data = defaultVM.toJSON();
@@ -72,6 +93,7 @@ const checkCode = function () {
 
 };
 const clearBoxes = function () {
+    mixpanel.track("Cleared suggestions");
     Blockly.getMainWorkspace().removeHighlightBox();
     Blockly.getMainWorkspace().getFlyout().removeHighlightBox();
     return {
@@ -81,6 +103,11 @@ const clearBoxes = function () {
 };
 
 const nextSmell = function(num) {
+    if(num == 1){
+        mixpanel.track("Navigated to next Improvable");
+    } else {
+        mixpanel.track("Navigated to previous Improvable");
+    }
     
     var maxSmellNumber = (smellType == 1)? response[smellNames[smellType]].length : response[smellNames[smellType]][sprite].length;
     if(((smellNumber+num)>=0) && ((smellNumber+num)<maxSmellNumber)){
@@ -147,8 +174,9 @@ const handleLongScript = function (response, workspace) {
     workspace.explainHighlightBox("This code can look better if we break it down. \n This maybe the right place to use the concept of 'Dividable Script'. \n What do you think?", 0);
     document.getElementById('options').innerHTML=str;
     document.getElementById("exampleButton").onclick = function() {
+        mixpanel.track("Viewed demo Dividable Script");
         // var strEx = '<g class="blocklyDraggable blocklySelected" data-shapes="c-block c-1 hat" transform="translate(350,200) scale(0.675)"><path class="blocklyPath blocklyBlockBackground" stroke="#FF3355" fill="#FF6680" fill-opacity="1" d="m 0, 0 a 20,20 0 0,1 20,-20 H 149.82195663452148 a 20,20 0 0,1 20,20 v 60  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><g data-shapes="stack" transform="translate(59.58120346069336,0)"><path class="blocklyPath blocklyBlockBackground" stroke="#FF3355" fill="#FF4D6A" fill-opacity="1" d="m 0,4 A 4,4 0 0,1 4,0 H 12 c 2,0 3,1 4,2 l 4,4 c 1,1 2,2 4,2 h 12 c 2,0 3,-1 4,-2 l 4,-4 c 1,-1 2,-2 4,-2 H 98.24075317382812 a 4,4 0 0,1 4,4 v 40  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="43.12037658691406" transform="translate(8, 24) ">Reset&nbsp;game</text></g><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="21.79060173034668" transform="translate(8, 24) ">define</text><g class="blocklyDraggable" data-shapes="stack" data-category="motion" transform="translate(0,64)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#4C97FF" fill-opacity="1" d="m 0,4 A 4,4 0 0,1 4,0 H 12 c 2,0 3,1 4,2 l 4,4 c 1,1 2,2 4,2 h 12 c 2,0 3,-1 4,-2 l 4,-4 c 1,-1 2,-2 4,-2 H 180.90317916870117 a 4,4 0 0,1 4,4 v 40  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><g data-argument-type="text number" data-shapes="argument round" transform="translate(68.46145629882812,8)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#FFFFFF" fill-opacity="1" d="m 0,0 m 16,0 H 24 a 16 16 0 0 1 0 32 H 16 a 16 16 0 0 1 0 -32 z"></path><g class="blocklyEditableText" transform="translate(8, 0) " style="cursor: text;"><text class="blocklyText" x="12" y="18" dominant-baseline="middle" dy="0" text-anchor="middle">0</text></g></g><g data-argument-type="text number" data-shapes="argument round" transform="translate(136.90317916870117,8)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#FFFFFF" fill-opacity="1" d="m 0,0 m 16,0 H 24 a 16 16 0 0 1 0 32 H 16 a 16 16 0 0 1 0 -32 z"></path><g class="blocklyEditableText" transform="translate(8, 0) " style="cursor: text;"><text class="blocklyText" x="12" y="18" dominant-baseline="middle" dy="0" text-anchor="middle">0</text></g></g><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="26.230728149414062" transform="translate(8, 24) ">go&nbsp;to&nbsp;x:</text><path class="blocklyPath" style="visibility: hidden" d="" fill="#3373CC"></path><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="6.220861434936523" transform="translate(116.46145629882812, 24) ">y:</text><path class="blocklyPath" style="visibility: hidden" d="" fill="#3373CC"></path><g class="blocklyDraggable" data-shapes="stack" data-category="motion" transform="translate(0,48)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#4C97FF" fill-opacity="1" d="m 0,4 A 4,4 0 0,1 4,0 H 12 c 2,0 3,1 4,2 l 4,4 c 1,1 2,2 4,2 h 12 c 2,0 3,-1 4,-2 l 4,-4 c 1,-1 2,-2 4,-2 H 185.3660068511963 a 4,4 0 0,1 4,4 v 40  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><g data-argument-type="text number" data-shapes="argument round" transform="translate(75.56236839294434,8.000000000000028)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#FFFFFF" fill-opacity="1" d="m 0,0 m 16,0 H 24 a 16 16 0 0 1 0 32 H 16 a 16 16 0 0 1 0 -32 z"></path><g class="blocklyEditableText" transform="translate(8, 0) " style="cursor: text;"><text class="blocklyText" x="12" y="18" dominant-baseline="middle" dy="0" text-anchor="middle">15</text></g></g><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="13.781184196472168" transform="translate(8, 24) ">turn</text><g transform="translate(43.562368392944336, 12) "><image height="24px" width="24px" xlink:href="./static/blocks-media/rotate-right.svg"></image></g><path class="blocklyPath" style="visibility: hidden" d="" fill="#3373CC"></path><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="28.901819229125977" transform="translate(123.56236839294434, 24) ">degrees</text><g class="blocklyDraggable" data-shapes="stack" data-category="control" transform="translate(0,48)"><path class="blocklyPath blocklyBlockBackground" stroke="#CF8B17" fill="#FFAB19" fill-opacity="1" d="m 0,4 A 4,4 0 0,1 4,0 H 12 c 2,0 3,1 4,2 l 4,4 c 1,1 2,2 4,2 h 12 c 2,0 3,-1 4,-2 l 4,-4 c 1,-1 2,-2 4,-2 H 159.59375 a 4,4 0 0,1 4,4 v 40  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><g data-argument-type="text number" data-shapes="argument round" transform="translate(48,8)"><path class="blocklyPath blocklyBlockBackground" stroke="#CF8B17" fill="#FFFFFF" fill-opacity="1" d="m 0,0 m 16,0 H 24 a 16 16 0 0 1 0 32 H 16 a 16 16 0 0 1 0 -32 z"></path><g class="blocklyEditableText" transform="translate(8, 0) " style="cursor: text;"><text class="blocklyText" x="12" y="18" dominant-baseline="middle" dy="0" text-anchor="middle">2</text></g></g><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="14.2265625" transform="translate(8, 24) ">wait</text><path class="blocklyPath" style="visibility: hidden" d="" fill="#CF8B17"></path><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="29.796875" transform="translate(96, 24) ">seconds</text><g class="blocklyDraggable" data-shapes="stack" transform="translate(0,48)"><path class="blocklyPath blocklyBlockBackground" stroke="#FF3355" fill="#FF6680" fill-opacity="1" d="m 0,4 A 4,4 0 0,1 4,0 H 12 c 2,0 3,1 4,2 l 4,4 c 1,1 2,2 4,2 h 12 c 2,0 3,-1 4,-2 l 4,-4 c 1,-1 2,-2 4,-2 H 122.24165344238281 a 4,4 0 0,1 4,4 v 40  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="55.120826721191406" transform="translate(8, 24) ">Reset&nbsp;variables</text><g class="blocklyDraggable" data-shapes="stack" data-category="motion" transform="translate(0,48)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#4C97FF" fill-opacity="1" d="m 0,4 A 4,4 0 0,1 4,0 H 12 c 2,0 3,1 4,2 l 4,4 c 1,1 2,2 4,2 h 12 c 2,0 3,-1 4,-2 l 4,-4 c 1,-1 2,-2 4,-2 H 185.3660068511963 a 4,4 0 0,1 4,4 v 40  a 4,4 0 0,1 -4,4 H 48   c -2,0 -3,1 -4,2 l -4,4 c -1,1 -2,2 -4,2 h -12 c -2,0 -3,-1 -4,-2 l -4,-4 c -1,-1 -2,-2 -4,-2 H 4 a 4,4 0 0,1 -4,-4 z"></path><g data-argument-type="text number" data-shapes="argument round" transform="translate(75.56236839294434,8.000000000000057)"><path class="blocklyPath blocklyBlockBackground" stroke="#3373CC" fill="#FFFFFF" fill-opacity="1" d="m 0,0 m 16,0 H 24 a 16 16 0 0 1 0 32 H 16 a 16 16 0 0 1 0 -32 z"></path><g class="blocklyEditableText" transform="translate(8, 0) " style="cursor: text;"><text class="blocklyText" x="12" y="18" dominant-baseline="middle" dy="0" text-anchor="middle">15</text></g></g><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="13.781184196472168" transform="translate(8, 24) ">turn</text><g transform="translate(43.562368392944336, 12) "><image height="24px" width="24px" xlink:href="./static/blocks-media/rotate-left.svg"></image></g><path class="blocklyPath" style="visibility: hidden" d="" fill="#3373CC"></path><text class="blocklyText" y="2" text-anchor="middle" dominant-baseline="middle" dy="0" x="28.901819229125977" transform="translate(123.56236839294434, 24) ">degrees</text></g></g></g></g></g></g>';
-        var strEx = '<g id="doneButton" style="pointer-events: auto;cursor: pointer;"><rect height="40" width="180" rx="5" ry="5" style="fill: rgb(77, 150, 253);stroke-width:5;stroke:rgb(77, 150, 253);" x="180" y="150"> </rect> <text style="fill: white;font-family: \'Helvetica Neue\', Helvetica, sans-serif;font-weight: bold" x="245" y="175">Done!</text></g>';
+        var strEx = '<g id="doneButton" style="pointer-events: auto;cursor: pointer;"><rect height="40" width="180" rx="5" ry="5" style="fill: rgb(77, 150, 253);stroke-width:5;stroke:rgb(77, 150, 253);" x="180" y="150"> </rect> <text style="fill: white;font-family: \'Helvetica Neue\', Helvetica, sans-serif;font-weight: bold" x="245" y="175">Back</text></g>';
         var strGif = '<g transform="translate(0,50)"><image href="https://media.giphy.com/media/22OOIdmSEZTBn70oyO/giphy.gif"></image></g>';
         clearBoxes();
         workspace.drawBox(500,610);
@@ -214,6 +242,7 @@ const handleLongScript = function (response, workspace) {
             lastClickedBlock1.setGlowBlock(false);
             lastClickedBlock2.setGlowBlock(false);
             workspace.removeHighlightBox();
+            mixpanel.track("Long Script Refactoring Done");
             showEditMsg(workspace, newBlockId);
         }
     }
@@ -243,6 +272,7 @@ const handleUncommunicativeName = function (response, workspace) {
         workspace.refreshToolboxSelection_();
         workspace.removeHighlightBox();
         workspace.getFlyout().removeHighlightBox();
+        mixpanel.track("Uncommunicative Name Refactoring Done");
         nextSmell(1);
     }
 };
@@ -311,6 +341,7 @@ const handleDuplicateCode = function (response, workspace) {
             }
             workspace.removeHighlightBox();
             workspace.getFlyout().removeHighlightBox();
+            mixpanel.track("Duplicate Script Refactoring Done");
             showEditMsg(workspace, newBlockId, 0, 1, newBlocks);
         };
     } 
@@ -380,6 +411,7 @@ const handleDuplicateExpr = function (response, workspace) {
             workspace.removeHighlightBox();
             workspace.getFlyout().removeHighlightBox();
             workspace.toolbox_.refreshSelection();
+            mixpanel.track("Duplicate Expression Refactoring Done");
             showEditMsg(workspace, newBlockId, 1);
         };
     } 
@@ -406,6 +438,7 @@ const showEditMsg = function (workspace, blockId, isVariable=0, isDuplicate=0, n
     };
     var eachRepeat = 0;
     if(document.getElementById("navigateButton")) document.getElementById("navigateButton").onclick = function() {
+        mixpanel.track("Navigated duplicates");
         workspace.centerOnBlock(newBlocks[eachRepeat]);
         eachRepeat++;
         if(eachRepeat==newBlocks.length) eachRepeat = 0;
