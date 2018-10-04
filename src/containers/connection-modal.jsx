@@ -3,6 +3,7 @@ import React from 'react';
 import bindAll from 'lodash.bindall';
 import ConnectionModalComponent, {PHASES} from '../components/connection-modal/connection-modal.jsx';
 import VM from 'scratch-vm';
+import analytics from '../lib/analytics';
 
 class ConnectionModal extends React.Component {
     constructor (props) {
@@ -12,21 +13,17 @@ class ConnectionModal extends React.Component {
             'handleConnected',
             'handleConnecting',
             'handleDisconnect',
-            'handleError'
+            'handleError',
+            'handleHelp'
         ]);
         this.state = {
-            phase: PHASES.scanning
+            phase: props.vm.getPeripheralIsConnected(props.extensionId) ?
+                PHASES.connected : PHASES.scanning
         };
     }
     componentDidMount () {
         this.props.vm.on('PERIPHERAL_CONNECTED', this.handleConnected);
         this.props.vm.on('PERIPHERAL_ERROR', this.handleError);
-
-        // Check if we're already connected
-        if (this.props.vm.getPeripheralIsConnected(this.props.extensionId)) {
-            this.handleConnected();
-        }
-
     }
     componentWillUnmount () {
         this.props.vm.removeListener('PERIPHERAL_CONNECTED', this.handleConnected);
@@ -38,20 +35,25 @@ class ConnectionModal extends React.Component {
         });
     }
     handleConnecting (peripheralId) {
-        this.props.vm.connectToPeripheral(this.props.extensionId, peripheralId);
+        this.props.vm.connectPeripheral(this.props.extensionId, peripheralId);
         this.setState({
             phase: PHASES.connecting
+        });
+        analytics.event({
+            category: 'extensions',
+            action: 'connecting',
+            label: this.props.extensionId
         });
     }
     handleDisconnect () {
         this.props.onStatusButtonUpdate(this.props.extensionId, 'not ready');
-        this.props.vm.disconnectExtensionSession(this.props.extensionId);
+        this.props.vm.disconnectPeripheral(this.props.extensionId);
         this.props.onCancel();
     }
     handleCancel () {
-        // If we're not connected to a device, close the websocket so we stop scanning.
+        // If we're not connected to a peripheral, close the websocket so we stop scanning.
         if (!this.props.vm.getPeripheralIsConnected(this.props.extensionId)) {
-            this.props.vm.disconnectExtensionSession(this.props.extensionId);
+            this.props.vm.disconnectPeripheral(this.props.extensionId);
         }
         this.props.onCancel();
     }
@@ -67,6 +69,11 @@ class ConnectionModal extends React.Component {
             this.setState({
                 phase: PHASES.error
             });
+            analytics.event({
+                category: 'extensions',
+                action: 'connecting error',
+                label: this.props.extensionId
+            });
         }
     }
     handleConnected () {
@@ -74,19 +81,32 @@ class ConnectionModal extends React.Component {
         this.setState({
             phase: PHASES.connected
         });
+        analytics.event({
+            category: 'extensions',
+            action: 'connected',
+            label: this.props.extensionId
+        });
     }
     handleHelp () {
-        // @todo: implement the help button
+        window.open(this.props.helpLink, '_blank');
+        analytics.event({
+            category: 'extensions',
+            action: 'help',
+            label: this.props.extensionId
+        });
     }
     render () {
         return (
             <ConnectionModalComponent
-                deviceImage={this.props.deviceImage}
+                connectingMessage={this.props.connectingMessage}
                 extensionId={this.props.extensionId}
                 name={this.props.name}
+                peripheralButtonImage={this.props.peripheralButtonImage}
+                peripheralImage={this.props.peripheralImage}
                 phase={this.state.phase}
-                smallDeviceImage={this.props.smallDeviceImage}
+                smallPeripheralImage={this.props.smallPeripheralImage}
                 title={this.props.extensionId}
+                useAutoScan={this.props.useAutoScan}
                 vm={this.props.vm}
                 onCancel={this.props.onCancel}
                 onConnected={this.handleConnected}
@@ -100,12 +120,16 @@ class ConnectionModal extends React.Component {
 }
 
 ConnectionModal.propTypes = {
-    deviceImage: PropTypes.string.isRequired,
+    connectingMessage: PropTypes.node.isRequired,
     extensionId: PropTypes.string.isRequired,
+    helpLink: PropTypes.string.isRequired,
     name: PropTypes.node.isRequired,
     onCancel: PropTypes.func.isRequired,
     onStatusButtonUpdate: PropTypes.func.isRequired,
-    smallDeviceImage: PropTypes.string.isRequired,
+    peripheralButtonImage: PropTypes.string,
+    peripheralImage: PropTypes.string.isRequired,
+    smallPeripheralImage: PropTypes.string.isRequired,
+    useAutoScan: PropTypes.bool.isRequired,
     vm: PropTypes.instanceOf(VM).isRequired
 };
 

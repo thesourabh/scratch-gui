@@ -2,6 +2,7 @@ import bindAll from 'lodash.bindall';
 import React from 'react';
 
 import {connect} from 'react-redux';
+import {intlShape, injectIntl} from 'react-intl';
 
 import {
     openSpriteLibrary,
@@ -10,16 +11,20 @@ import {
 
 import {activateTab, COSTUMES_TAB_INDEX} from '../reducers/editor-tab';
 import {setReceivedBlocks} from '../reducers/hovered-target';
+import {setRestore} from '../reducers/restore-deletion';
 import DragConstants from '../lib/drag-constants';
 import TargetPaneComponent from '../components/target-pane/target-pane.jsx';
 import spriteLibraryContent from '../lib/libraries/sprites.json';
 import {handleFileUpload, spriteUpload} from '../lib/file-uploader.js';
+import sharedMessages from '../lib/shared-messages';
+import {emptySprite} from '../lib/empty-assets';
 
 class TargetPane extends React.Component {
     constructor (props) {
         super(props);
         bindAll(this, [
             'handleBlockDragEnd',
+            'handleChangeSpriteRotationStyle',
             'handleChangeSpriteDirection',
             'handleChangeSpriteName',
             'handleChangeSpriteSize',
@@ -48,6 +53,9 @@ class TargetPane extends React.Component {
     handleChangeSpriteDirection (direction) {
         this.props.vm.postSpriteInfo({direction});
     }
+    handleChangeSpriteRotationStyle (rotationStyle) {
+        this.props.vm.postSpriteInfo({rotationStyle});
+    }
     handleChangeSpriteName (name) {
         this.props.vm.renameSprite(this.props.editingTarget, name);
     }
@@ -64,7 +72,12 @@ class TargetPane extends React.Component {
         this.props.vm.postSpriteInfo({y});
     }
     handleDeleteSprite (id) {
-        this.props.vm.deleteSprite(id);
+        const restoreFun = this.props.vm.deleteSprite(id);
+        this.props.dispatchUpdateRestore({
+            restoreFun: restoreFun,
+            deletedItem: 'Sprite'
+        });
+
     }
     handleDuplicateSprite (id) {
         this.props.vm.duplicateSprite(id);
@@ -99,15 +112,17 @@ class TargetPane extends React.Component {
         this.props.vm.addSprite(JSON.stringify(item.json));
     }
     handlePaintSpriteClick () {
-        // @todo this is brittle, will need to be refactored for localized libraries
-        const emptyItem = spriteLibraryContent.find(item => item.name === 'Empty');
-        if (emptyItem) {
-            this.props.vm.addSprite(JSON.stringify(emptyItem.json)).then(() => {
-                setTimeout(() => { // Wait for targets update to propagate before tab switching
-                    this.props.onActivateTab(COSTUMES_TAB_INDEX);
-                });
+        const formatMessage = this.props.intl.formatMessage;
+        const emptyItem = emptySprite(
+            formatMessage(sharedMessages.sprite, {index: 1}),
+            formatMessage(sharedMessages.pop),
+            formatMessage(sharedMessages.costume, {index: 1})
+        );
+        this.props.vm.addSprite(JSON.stringify(emptyItem)).then(() => {
+            setTimeout(() => { // Wait for targets update to propagate before tab switching
+                this.props.onActivateTab(COSTUMES_TAB_INDEX);
             });
-        }
+        });
     }
     handleNewSprite (spriteJSONString) {
         this.props.vm.addSprite(spriteJSONString);
@@ -117,8 +132,9 @@ class TargetPane extends React.Component {
     }
     handleSpriteUpload (e) {
         const storage = this.props.vm.runtime.storage;
+        const costumeSuffix = this.props.intl.formatMessage(sharedMessages.costume, {index: 1});
         handleFileUpload(e.target, (buffer, fileType, fileName) => {
-            spriteUpload(buffer, fileType, fileName, storage, this.handleNewSprite);
+            spriteUpload(buffer, fileType, fileName, storage, this.handleNewSprite, costumeSuffix);
         });
     }
     setFileInput (input) {
@@ -126,7 +142,7 @@ class TargetPane extends React.Component {
     }
     handleBlockDragEnd (blocks) {
         if (this.props.hoveredTarget.sprite && this.props.hoveredTarget.sprite !== this.props.editingTarget) {
-            this.props.vm.shareBlocksToTarget(blocks, this.props.hoveredTarget.sprite);
+            this.props.vm.shareBlocksToTarget(blocks, this.props.hoveredTarget.sprite, this.props.editingTarget);
             this.props.onReceivedBlocks(true);
         }
     }
@@ -152,6 +168,18 @@ class TargetPane extends React.Component {
                 this.props.vm.shareCostumeToTarget(dragInfo.index, targetId);
             } else if (targetId && dragInfo.dragType === DragConstants.SOUND) {
                 this.props.vm.shareSoundToTarget(dragInfo.index, targetId);
+            } else if (dragInfo.dragType === DragConstants.BACKPACK_COSTUME) {
+                // In scratch 2, this only creates a new sprite from the costume.
+                // We may be able to handle both kinds of drops, depending on where
+                // the drop happens. For now, just add the costume.
+                this.props.vm.addCostume(dragInfo.payload.body, {
+                    name: dragInfo.payload.name
+                }, targetId);
+            } else if (dragInfo.dragType === DragConstants.BACKPACK_SOUND) {
+                this.props.vm.addSound({
+                    md5: dragInfo.payload.body,
+                    name: dragInfo.payload.name
+                }, targetId);
             }
         }
     }
@@ -159,6 +187,7 @@ class TargetPane extends React.Component {
         const {
             onActivateTab, // eslint-disable-line no-unused-vars
             onReceivedBlocks, // eslint-disable-line no-unused-vars
+            dispatchUpdateRestore, // eslint-disable-line no-unused-vars
             ...componentProps
         } = this.props;
         return (
@@ -167,6 +196,7 @@ class TargetPane extends React.Component {
                 fileInputRef={this.setFileInput}
                 onChangeSpriteDirection={this.handleChangeSpriteDirection}
                 onChangeSpriteName={this.handleChangeSpriteName}
+                onChangeSpriteRotationStyle={this.handleChangeSpriteRotationStyle}
                 onChangeSpriteSize={this.handleChangeSpriteSize}
                 onChangeSpriteVisibility={this.handleChangeSpriteVisibility}
                 onChangeSpriteX={this.handleChangeSpriteX}
@@ -191,6 +221,7 @@ const {
 } = TargetPaneComponent.propTypes;
 
 TargetPane.propTypes = {
+    intl: intlShape.isRequired,
     ...targetPaneProps
 };
 
@@ -223,10 +254,13 @@ const mapDispatchToProps = dispatch => ({
     },
     onReceivedBlocks: receivedBlocks => {
         dispatch(setReceivedBlocks(receivedBlocks));
+    },
+    dispatchUpdateRestore: restoreState => {
+        dispatch(setRestore(restoreState));
     }
 });
 
-export default connect(
+export default injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
-)(TargetPane);
+)(TargetPane));

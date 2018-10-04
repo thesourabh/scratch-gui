@@ -8,6 +8,7 @@ import VMScratchBlocks from '../lib/blocks';
 import VM from 'scratch-vm';
 
 import analytics from '../lib/analytics';
+import log from '../lib/log.js';
 import Prompt from './prompt.jsx';
 import ConnectionModal from './connection-modal.jsx';
 import BlocksComponent from '../components/blocks/blocks.jsx';
@@ -77,7 +78,7 @@ class Blocks extends React.Component {
         const workspaceConfig = defaultsDeep({},
             Blocks.defaultOptions,
             this.props.options,
-            {toolbox: this.props.toolboxXML}
+            {rtl: this.props.isRtl, toolbox: this.props.toolboxXML}
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
 
@@ -94,7 +95,11 @@ class Blocks extends React.Component {
         addFunctionListener(this.workspace, 'zoom', this.onWorkspaceMetricsChange);
 
         this.attachVM();
-        this.setLocale();
+        // Only update blocks/vm locale when visible to avoid sizing issues
+        // If locale changes while not visible it will get handled in didUpdate
+        if (this.props.isVisible) {
+            this.setLocale();
+        }
 
         analytics.pageview('/editors/blocks');
     }
@@ -117,10 +122,6 @@ class Blocks extends React.Component {
             this.ScratchBlocks.hideChaff();
         }
 
-        if (prevProps.locale !== this.props.locale) {
-            this.setLocale();
-        }
-
         if (prevProps.toolboxXML !== this.props.toolboxXML) {
             // rather than update the toolbox "sync" -- update it in the next frame
             clearTimeout(this.toolboxUpdateTimeout);
@@ -139,9 +140,15 @@ class Blocks extends React.Component {
         // @todo hack to reload the workspace due to gui bug #413
         if (this.props.isVisible) { // Scripts tab
             this.workspace.setVisible(true);
-            this.props.vm.refreshWorkspace();
-            // Re-enable toolbox refreshes without causing one. See #updateToolbox for more info.
-            this.workspace.toolboxRefreshEnabled_ = true;
+            if (prevProps.locale !== this.props.locale || this.props.locale !== this.props.vm.getLocale()) {
+                // call setLocale if the locale has changed, or changed while the blocks were hidden.
+                // vm.getLocale() will be out of sync if locale was changed while not visible
+                this.setLocale();
+            } else {
+                this.props.vm.refreshWorkspace();
+                this.updateToolbox();
+            }
+
             window.dispatchEvent(new Event('resize'));
         } else {
             this.workspace.setVisible(false);
@@ -158,8 +165,8 @@ class Blocks extends React.Component {
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
         this.props.vm.setLocale(this.props.locale, this.props.messages)
             .then(() => {
-                this.workspace.updateToolbox(this.props.toolboxXML);
                 this.props.vm.refreshWorkspace();
+                this.updateToolbox();
                 this.workspace.getFlyout().setRecyclingEnabled(true);
             });
     }
@@ -294,7 +301,21 @@ class Blocks extends React.Component {
         // Remove and reattach the workspace listener (but allow flyout events)
         this.workspace.removeChangeListener(this.props.vm.blockListener);
         const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
-        this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+        try {
+            this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+        } catch (error) {
+            // The workspace is likely incomplete. What did update should be
+            // functional.
+            //
+            // Instead of throwing the error, by logging it and continuing as
+            // normal lets the other workspace update processes complete in the
+            // gui and vm, which lets the vm run even if the workspace is
+            // incomplete. Throwing the error would keep things like setting the
+            // correct editing target from happening which can interfere with
+            // some blocks and processes in the vm.
+            error.message = `Workspace Update Error: ${error.message}`;
+            log.error(error);
+        }
         this.workspace.addChangeListener(this.props.vm.blockListener);
 
         if (this.props.vm.editingTarget && this.state.workspaceMetrics[this.props.vm.editingTarget.id]) {
@@ -304,6 +325,11 @@ class Blocks extends React.Component {
             this.workspace.scale = scale;
             this.workspace.resize();
         }
+
+        // Clear the undo state of the workspace since this is a
+        // fresh workspace and we don't want any changes made to another sprites
+        // workspace to be 'undone' here.
+        this.workspace.clearUndo();
     }
     handleExtensionAdded (blocksInfo) {
         // select JSON from each block info object then reject the pseudo-blocks which don't have JSON, like separators
@@ -325,7 +351,7 @@ class Blocks extends React.Component {
     }
     handleCategorySelected (categoryId) {
         const extension = extensionData.find(ext => ext.extensionId === categoryId);
-        if (extension && extension.launchDeviceConnectionFlow) {
+        if (extension && extension.launchPeripheralConnectionFlow) {
             this.handleConnectionModalStart(categoryId);
         }
 
@@ -353,9 +379,13 @@ class Blocks extends React.Component {
         if (extension) {
             this.setState({connectionModal: {
                 extensionId: extensionId,
-                deviceImage: extension.deviceImage,
-                smallDeviceImage: extension.smallDeviceImage,
-                name: extension.name
+                useAutoScan: extension.useAutoScan,
+                peripheralImage: extension.peripheralImage,
+                smallPeripheralImage: extension.smallPeripheralImage,
+                peripheralButtonImage: extension.peripheralButtonImage,
+                name: extension.name,
+                connectingMessage: extension.connectingMessage,
+                helpLink: extension.helpLink
             }});
         }
     }
@@ -390,6 +420,7 @@ class Blocks extends React.Component {
             options,
             stageSize,
             vm,
+            isRtl,
             isVisible,
             onActivateColorPicker,
             updateToolboxState,
@@ -419,10 +450,7 @@ class Blocks extends React.Component {
                 ) : null}
                 {this.state.connectionModal ? (
                     <ConnectionModal
-                        deviceImage={this.state.connectionModal.deviceImage}
-                        extensionId={this.state.connectionModal.extensionId}
-                        name={this.state.connectionModal.name}
-                        smallDeviceImage={this.state.connectionModal.smallDeviceImage}
+                        {...this.state.connectionModal}
                         vm={vm}
                         onCancel={this.handleConnectionModalClose}
                         onStatusButtonUpdate={this.handleStatusButtonUpdate}
@@ -452,6 +480,7 @@ Blocks.propTypes = {
     anyModalVisible: PropTypes.bool,
     customProceduresVisible: PropTypes.bool,
     extensionLibraryVisible: PropTypes.bool,
+    isRtl: PropTypes.bool,
     isVisible: PropTypes.bool,
     locale: PropTypes.string,
     messages: PropTypes.objectOf(PropTypes.string),
@@ -526,6 +555,7 @@ const mapStateToProps = state => ({
         state.scratchGui.mode.isFullScreen
     ),
     extensionLibraryVisible: state.scratchGui.modals.extensionLibrary,
+    isRtl: state.locales.isRtl,
     locale: state.locales.locale,
     messages: state.locales.messages,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,

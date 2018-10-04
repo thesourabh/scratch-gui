@@ -8,6 +8,7 @@ import Box from '../components/box/box.jsx';
 import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
+import TitledHOC from '../lib/titled-hoc.jsx';
 
 import {setPlayer} from '../reducers/mode';
 
@@ -18,7 +19,7 @@ if (process.env.NODE_ENV === 'production' && typeof window === 'object') {
 
 import styles from './player.css';
 
-const Player = ({isPlayerOnly, onSeeInside}) => (
+const Player = ({isPlayerOnly, onSeeInside, projectId}) => (
     <Box
         className={classNames({
             [styles.stageOnly]: isPlayerOnly
@@ -28,13 +29,15 @@ const Player = ({isPlayerOnly, onSeeInside}) => (
         <GUI
             enableCommunity
             isPlayerOnly={isPlayerOnly}
+            projectId={projectId}
         />
     </Box>
 );
 
 Player.propTypes = {
     isPlayerOnly: PropTypes.bool,
-    onSeeInside: PropTypes.func
+    onSeeInside: PropTypes.func,
+    projectId: PropTypes.string
 };
 
 const mapStateToProps = state => ({
@@ -46,7 +49,7 @@ const mapDispatchToProps = dispatch => ({
 });
 
 const ConnectedPlayer = connect(mapStateToProps, mapDispatchToProps)(Player);
-const WrappedPlayer = HashParserHOC(AppStateHOC(ConnectedPlayer));
+const WrappedPlayer = HashParserHOC(AppStateHOC(TitledHOC(ConnectedPlayer)));
 
 const appTarget = document.createElement('div');
 document.body.appendChild(appTarget);
