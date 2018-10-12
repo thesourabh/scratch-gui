@@ -1,23 +1,102 @@
-import {combineReducers} from 'redux';
-import cardsReducer from './cards';
-import colorPickerReducer from './color-picker';
-import customProceduresReducer from './custom-procedures';
-import blockDragReducer from './block-drag';
-import editorTabReducer from './editor-tab';
-import hoveredTargetReducer from './hovered-target';
-import intlReducer from './intl';
-import menuReducer from './menus';
-import modalReducer from './modals';
-import modeReducer from './mode';
-import monitorReducer from './monitors';
-import monitorLayoutReducer from './monitor-layout';
-import targetReducer from './targets';
-import toolboxReducer from './toolbox';
-import vmReducer from './vm';
-import stageSizeReducer from './stage-size';
-import {ScratchPaintReducer} from 'scratch-paint';
+import {applyMiddleware, compose, combineReducers} from 'redux';
+import alertsReducer, {alertsInitialState} from './alerts';
+import assetDragReducer, {assetDragInitialState} from './asset-drag';
+import cardsReducer, {cardsInitialState} from './cards';
+import colorPickerReducer, {colorPickerInitialState} from './color-picker';
+import customProceduresReducer, {customProceduresInitialState} from './custom-procedures';
+import blockDragReducer, {blockDragInitialState} from './block-drag';
+import editorTabReducer, {editorTabInitialState} from './editor-tab';
+import hoveredTargetReducer, {hoveredTargetInitialState} from './hovered-target';
+import menuReducer, {menuInitialState} from './menus';
+import micIndicatorReducer, {micIndicatorInitialState} from './mic-indicator';
+import modalReducer, {modalsInitialState} from './modals';
+import modeReducer, {modeInitialState} from './mode';
+import monitorReducer, {monitorsInitialState} from './monitors';
+import monitorLayoutReducer, {monitorLayoutInitialState} from './monitor-layout';
+import projectStateReducer, {projectStateInitialState} from './project-state';
+import projectTitleReducer, {projectTitleInitialState} from './project-title';
+import restoreDeletionReducer, {restoreDeletionInitialState} from './restore-deletion';
+import stageSizeReducer, {stageSizeInitialState} from './stage-size';
+import targetReducer, {targetsInitialState} from './targets';
+import toolboxReducer, {toolboxInitialState} from './toolbox';
+import vmReducer, {vmInitialState} from './vm';
+import vmStatusReducer, {vmStatusInitialState} from './vm-status';
+import throttle from 'redux-throttle';
 
-export default combineReducers({
+import decks from '../lib/libraries/decks/index.jsx';
+
+const guiMiddleware = compose(applyMiddleware(throttle(300, {leading: true, trailing: true})));
+
+const guiInitialState = {
+    alerts: alertsInitialState,
+    assetDrag: assetDragInitialState,
+    blockDrag: blockDragInitialState,
+    cards: cardsInitialState,
+    colorPicker: colorPickerInitialState,
+    customProcedures: customProceduresInitialState,
+    editorTab: editorTabInitialState,
+    mode: modeInitialState,
+    hoveredTarget: hoveredTargetInitialState,
+    stageSize: stageSizeInitialState,
+    menus: menuInitialState,
+    micIndicator: micIndicatorInitialState,
+    modals: modalsInitialState,
+    monitors: monitorsInitialState,
+    monitorLayout: monitorLayoutInitialState,
+    projectState: projectStateInitialState,
+    projectTitle: projectTitleInitialState,
+    restoreDeletion: restoreDeletionInitialState,
+    targets: targetsInitialState,
+    toolbox: toolboxInitialState,
+    vm: vmInitialState,
+    vmStatus: vmStatusInitialState
+};
+
+const initPlayer = function (currentState) {
+    return Object.assign(
+        {},
+        currentState,
+        {mode: {
+            isFullScreen: currentState.mode.isFullScreen,
+            isPlayerOnly: true
+        }}
+    );
+};
+const initFullScreen = function (currentState) {
+    return Object.assign(
+        {},
+        currentState,
+        {mode: {
+            isFullScreen: true,
+            isPlayerOnly: currentState.mode.isPlayerOnly
+        }}
+    );
+};
+
+const initTutorialCard = function (currentState, deckId) {
+    return Object.assign(
+        {},
+        currentState,
+        {
+            modals: {
+                previewInfo: false
+            },
+            cards: {
+                visible: true,
+                content: decks,
+                activeDeckId: deckId,
+                step: 0,
+                x: 0,
+                y: 0,
+                dragging: false
+            }
+        }
+    );
+};
+
+const guiReducer = combineReducers({
+    alerts: alertsReducer,
+    assetDrag: assetDragReducer,
     blockDrag: blockDragReducer,
     cards: cardsReducer,
     colorPicker: colorPickerReducer,
@@ -25,14 +104,26 @@ export default combineReducers({
     editorTab: editorTabReducer,
     mode: modeReducer,
     hoveredTarget: hoveredTargetReducer,
-    intl: intlReducer,
     stageSize: stageSizeReducer,
     menus: menuReducer,
+    micIndicator: micIndicatorReducer,
     modals: modalReducer,
     monitors: monitorReducer,
     monitorLayout: monitorLayoutReducer,
+    projectState: projectStateReducer,
+    projectTitle: projectTitleReducer,
+    restoreDeletion: restoreDeletionReducer,
     targets: targetReducer,
     toolbox: toolboxReducer,
     vm: vmReducer,
-    scratchPaint: ScratchPaintReducer
+    vmStatus: vmStatusReducer
 });
+
+export {
+    guiReducer as default,
+    guiInitialState,
+    guiMiddleware,
+    initFullScreen,
+    initPlayer,
+    initTutorialCard
+};

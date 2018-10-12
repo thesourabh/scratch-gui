@@ -1,4 +1,4 @@
-import {importBitmap} from 'scratch-svg-renderer';
+import {BitmapAdapter} from 'scratch-svg-renderer';
 import log from './log.js';
 
 /**
@@ -79,7 +79,7 @@ const cacheAsset = function (storage, fileName, assetType, dataFormat, data) {
 
 /**
  * Handles loading a costume or a backdrop using the provided, context-relevant information.
- * @param {ArrayBuffer | string} fileData The costume data to load (this can be an image url
+ * @param {ArrayBuffer | string} fileData The costume data to load (this can be a base64 string
  * iff the image is a bitmap)
  * @param {string} fileType The MIME type of this file
  * @param {string} costumeName The user-readable name to use for the costume.
@@ -112,13 +112,15 @@ const costumeUpload = function (fileData, fileType, costumeName, storage, handle
         return;
     }
 
-    const addCostumeFromBuffer = function (error, costumeBuffer) {
-        if (error) {
-            log.warn(`An error occurred while trying to extract image data: ${error}`);
-            return;
-        }
-
-        const vmCostume = cacheAsset(storage, costumeName, assetType, costumeFormat, costumeBuffer);
+    const bitmapAdapter = new BitmapAdapter();
+    const addCostumeFromBuffer = function (dataBuffer) {
+        const vmCostume = cacheAsset(
+            storage,
+            costumeName,
+            assetType,
+            costumeFormat,
+            dataBuffer
+        );
         handleCostume(vmCostume);
     };
 
@@ -127,10 +129,13 @@ const costumeUpload = function (fileData, fileType, costumeName, storage, handle
         // passing in an array buffer causes the sprite/costume
         // thumbnails to not display because the data URI for the costume
         // is invalid
-        addCostumeFromBuffer(null, new Uint8Array(fileData));
+        addCostumeFromBuffer(new Uint8Array(fileData));
     } else {
         // otherwise it's a bitmap
-        importBitmap(fileData, addCostumeFromBuffer);
+        bitmapAdapter.importBitmap(fileData, fileType).then(addCostumeFromBuffer)
+            .catch(e => {
+                log.error(e);
+            });
     }
 };
 
@@ -175,7 +180,8 @@ const soundUpload = function (fileData, fileType, soundName, storage, handleSoun
     handleSound(vmSound);
 };
 
-const spriteUpload = function (fileData, fileType, spriteName, storage, handleSprite) {
+const spriteUpload = function (fileData, fileType, spriteName, storage, handleSprite, costumeSuffix) {
+    const costumeName = costumeSuffix || 'costume1';
     switch (fileType) {
     case '':
     case 'application/zip': { // We think this is a .sprite2 or .sprite3 file
@@ -186,7 +192,7 @@ const spriteUpload = function (fileData, fileType, spriteName, storage, handleSp
     case 'image/png':
     case 'image/jpeg': {
         // Make a sprite from an image by making it a costume first
-        costumeUpload(fileData, fileType, `${spriteName}-costume1`, storage, (vmCostume => {
+        costumeUpload(fileData, fileType, `${spriteName}-${costumeName}`, storage, (vmCostume => {
             const newSprite = {
                 name: spriteName,
                 isStage: false,

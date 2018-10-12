@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import Draggable from 'react-draggable';
 import {FormattedMessage} from 'react-intl';
@@ -7,8 +8,8 @@ import {ContextMenu, MenuItem} from '../context-menu/context-menu.jsx';
 import Box from '../box/box.jsx';
 import DefaultMonitor from './default-monitor.jsx';
 import LargeMonitor from './large-monitor.jsx';
-import SliderMonitor from './slider-monitor.jsx';
-import ListMonitor from './list-monitor.jsx';
+import SliderMonitor from '../../containers/slider-monitor.jsx';
+import ListMonitor from '../../containers/list-monitor.jsx';
 
 import styles from './monitor.css';
 
@@ -29,30 +30,34 @@ const modes = {
 };
 
 const MonitorComponent = props => (
-    <ContextMenuTrigger id={`monitor-${props.label}`}>
+    <ContextMenuTrigger
+        disable={!props.draggable}
+        holdToDisplay={props.mode === 'slider' ? -1 : 1000}
+        id={`monitor-${props.label}`}
+    >
         <Draggable
             bounds=".monitor-overlay" // Class for monitor container
             cancel=".no-drag" // Class used for slider input to prevent drag
             defaultClassNameDragging={styles.dragging}
+            disabled={!props.draggable}
             onStop={props.onDragEnd}
         >
             <Box
                 className={styles.monitorContainer}
                 componentRef={props.componentRef}
-                onDoubleClick={props.mode === 'list' ? null : props.onNextMode}
+                onDoubleClick={props.mode === 'list' || !props.draggable ? null : props.onNextMode}
             >
-                {(modes[props.mode] || modes.default)({ // Use default until other modes arrive
+                {React.createElement(modes[props.mode], {
                     categoryColor: categories[props.category],
-                    label: props.label,
-                    value: props.value,
-                    width: props.width,
-                    height: props.height,
-                    min: props.min,
-                    max: props.max
+                    ...props
                 })}
             </Box>
         </Draggable>
-        {props.mode === 'list' ? null : (
+        {props.mode === 'list' ? null : ReactDOM.createPortal((
+            // Use a portal to render the context menu outside the flow to avoid
+            // positioning conflicts between the monitors `transform: scale` and
+            // the context menus `position: fixed`. For more details, see
+            // http://meyerweb.com/eric/thoughts/2011/09/12/un-fixing-fixed-elements-with-css-transforms/
             <ContextMenu id={`monitor-${props.label}`}>
                 <MenuItem onClick={props.onSetModeToDefault}>
                     <FormattedMessage
@@ -78,7 +83,7 @@ const MonitorComponent = props => (
                     </MenuItem>
                 ) : null}
             </ContextMenu>
-        )}
+        ), document.body)}
     </ContextMenuTrigger>
 
 );
@@ -90,25 +95,14 @@ const monitorModes = Object.keys(modes);
 MonitorComponent.propTypes = {
     category: PropTypes.oneOf(Object.keys(categories)),
     componentRef: PropTypes.func.isRequired,
-    height: PropTypes.number,
+    draggable: PropTypes.bool.isRequired,
     label: PropTypes.string.isRequired,
-    max: PropTypes.number,
-    min: PropTypes.number,
     mode: PropTypes.oneOf(monitorModes),
     onDragEnd: PropTypes.func.isRequired,
     onNextMode: PropTypes.func.isRequired,
     onSetModeToDefault: PropTypes.func.isRequired,
     onSetModeToLarge: PropTypes.func.isRequired,
-    onSetModeToSlider: PropTypes.func,
-    value: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.number,
-        PropTypes.arrayOf(PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.number
-        ]))
-    ]),
-    width: PropTypes.number
+    onSetModeToSlider: PropTypes.func
 };
 
 MonitorComponent.defaultProps = {

@@ -2,6 +2,7 @@ import bindAll from 'lodash.bindall';
 import React from 'react';
 
 import {connect} from 'react-redux';
+import {intlShape, injectIntl} from 'react-intl';
 
 import {
     openSpriteLibrary,
@@ -10,16 +11,20 @@ import {
 
 import {activateTab, COSTUMES_TAB_INDEX} from '../reducers/editor-tab';
 import {setReceivedBlocks} from '../reducers/hovered-target';
-
+import {setRestore} from '../reducers/restore-deletion';
+import DragConstants from '../lib/drag-constants';
 import TargetPaneComponent from '../components/target-pane/target-pane.jsx';
 import spriteLibraryContent from '../lib/libraries/sprites.json';
 import {handleFileUpload, spriteUpload} from '../lib/file-uploader.js';
+import sharedMessages from '../lib/shared-messages';
+import {emptySprite} from '../lib/empty-assets';
 
 class TargetPane extends React.Component {
     constructor (props) {
         super(props);
         bindAll(this, [
             'handleBlockDragEnd',
+            'handleChangeSpriteRotationStyle',
             'handleChangeSpriteDirection',
             'handleChangeSpriteName',
             'handleChangeSpriteSize',
@@ -27,7 +32,9 @@ class TargetPane extends React.Component {
             'handleChangeSpriteX',
             'handleChangeSpriteY',
             'handleDeleteSprite',
+            'handleDrop',
             'handleDuplicateSprite',
+            'handleExportSprite',
             'handleNewSprite',
             'handleSelectSprite',
             'handleSurpriseSpriteClick',
@@ -46,6 +53,9 @@ class TargetPane extends React.Component {
     handleChangeSpriteDirection (direction) {
         this.props.vm.postSpriteInfo({direction});
     }
+    handleChangeSpriteRotationStyle (rotationStyle) {
+        this.props.vm.postSpriteInfo({rotationStyle});
+    }
     handleChangeSpriteName (name) {
         this.props.vm.renameSprite(this.props.editingTarget, name);
     }
@@ -62,10 +72,37 @@ class TargetPane extends React.Component {
         this.props.vm.postSpriteInfo({y});
     }
     handleDeleteSprite (id) {
-        this.props.vm.deleteSprite(id);
+        const restoreFun = this.props.vm.deleteSprite(id);
+        this.props.dispatchUpdateRestore({
+            restoreFun: restoreFun,
+            deletedItem: 'Sprite'
+        });
+
     }
     handleDuplicateSprite (id) {
         this.props.vm.duplicateSprite(id);
+    }
+    handleExportSprite (id) {
+        const spriteName = this.props.vm.runtime.getTargetById(id).getName();
+        const saveLink = document.createElement('a');
+        document.body.appendChild(saveLink);
+
+        this.props.vm.exportSprite(id).then(content => {
+            const filename = `${spriteName}.sprite3`;
+
+            // Use special ms version if available to get it working on Edge.
+            if (navigator.msSaveOrOpenBlob) {
+                navigator.msSaveOrOpenBlob(content, filename);
+                return;
+            }
+
+            const url = window.URL.createObjectURL(content);
+            saveLink.href = url;
+            saveLink.download = filename;
+            saveLink.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(saveLink);
+        });
     }
     handleSelectSprite (id) {
         this.props.vm.setEditingTarget(id);
@@ -75,15 +112,17 @@ class TargetPane extends React.Component {
         this.props.vm.addSprite(JSON.stringify(item.json));
     }
     handlePaintSpriteClick () {
-        // @todo this is brittle, will need to be refactored for localized libraries
-        const emptyItem = spriteLibraryContent.find(item => item.name === 'Empty');
-        if (emptyItem) {
-            this.props.vm.addSprite(JSON.stringify(emptyItem.json)).then(() => {
-                setTimeout(() => { // Wait for targets update to propagate before tab switching
-                    this.props.onActivateTab(COSTUMES_TAB_INDEX);
-                });
+        const formatMessage = this.props.intl.formatMessage;
+        const emptyItem = emptySprite(
+            formatMessage(sharedMessages.sprite, {index: 1}),
+            formatMessage(sharedMessages.pop),
+            formatMessage(sharedMessages.costume, {index: 1})
+        );
+        this.props.vm.addSprite(JSON.stringify(emptyItem)).then(() => {
+            setTimeout(() => { // Wait for targets update to propagate before tab switching
+                this.props.onActivateTab(COSTUMES_TAB_INDEX);
             });
-        }
+        });
     }
     handleNewSprite (spriteJSONString) {
         this.props.vm.addSprite(spriteJSONString);
@@ -93,8 +132,9 @@ class TargetPane extends React.Component {
     }
     handleSpriteUpload (e) {
         const storage = this.props.vm.runtime.storage;
+        const costumeSuffix = this.props.intl.formatMessage(sharedMessages.costume, {index: 1});
         handleFileUpload(e.target, (buffer, fileType, fileName) => {
-            spriteUpload(buffer, fileType, fileName, storage, this.handleNewSprite);
+            spriteUpload(buffer, fileType, fileName, storage, this.handleNewSprite, costumeSuffix);
         });
     }
     setFileInput (input) {
@@ -102,14 +142,52 @@ class TargetPane extends React.Component {
     }
     handleBlockDragEnd (blocks) {
         if (this.props.hoveredTarget.sprite && this.props.hoveredTarget.sprite !== this.props.editingTarget) {
-            this.props.vm.shareBlocksToTarget(blocks, this.props.hoveredTarget.sprite);
+            this.props.vm.shareBlocksToTarget(blocks, this.props.hoveredTarget.sprite, this.props.editingTarget);
             this.props.onReceivedBlocks(true);
+        }
+    }
+    handleDrop (dragInfo) {
+        const {sprite: targetId} = this.props.hoveredTarget;
+        if (dragInfo.dragType === DragConstants.SPRITE) {
+            // Add one to both new and target index because we are not counting/moving the stage
+            this.props.vm.reorderTarget(dragInfo.index + 1, dragInfo.newIndex + 1);
+        } else if (dragInfo.dragType === DragConstants.BACKPACK_SPRITE) {
+            // TODO storage does not have a way of loading zips right now, and may never need it.
+            // So for now just grab the zip manually.
+            fetch(dragInfo.payload.bodyUrl)
+                .then(response => response.arrayBuffer())
+                .then(sprite3Zip => this.props.vm.addSprite(sprite3Zip));
+        } else if (targetId) {
+            // Something is being dragged over one of the sprite tiles or the backdrop.
+            // Dropping assets like sounds and costumes duplicate the asset on the
+            // hovered target. Shared costumes also become the current costume on that target.
+            // However, dropping does not switch the editing target or activate that editor tab.
+            // This is based on 2.0 behavior, but seems like it keeps confusing switching to a minimum.
+            // it allows the user to share multiple things without switching back and forth.
+            if (dragInfo.dragType === DragConstants.COSTUME) {
+                this.props.vm.shareCostumeToTarget(dragInfo.index, targetId);
+            } else if (targetId && dragInfo.dragType === DragConstants.SOUND) {
+                this.props.vm.shareSoundToTarget(dragInfo.index, targetId);
+            } else if (dragInfo.dragType === DragConstants.BACKPACK_COSTUME) {
+                // In scratch 2, this only creates a new sprite from the costume.
+                // We may be able to handle both kinds of drops, depending on where
+                // the drop happens. For now, just add the costume.
+                this.props.vm.addCostume(dragInfo.payload.body, {
+                    name: dragInfo.payload.name
+                }, targetId);
+            } else if (dragInfo.dragType === DragConstants.BACKPACK_SOUND) {
+                this.props.vm.addSound({
+                    md5: dragInfo.payload.body,
+                    name: dragInfo.payload.name
+                }, targetId);
+            }
         }
     }
     render () {
         const {
             onActivateTab, // eslint-disable-line no-unused-vars
             onReceivedBlocks, // eslint-disable-line no-unused-vars
+            dispatchUpdateRestore, // eslint-disable-line no-unused-vars
             ...componentProps
         } = this.props;
         return (
@@ -118,12 +196,15 @@ class TargetPane extends React.Component {
                 fileInputRef={this.setFileInput}
                 onChangeSpriteDirection={this.handleChangeSpriteDirection}
                 onChangeSpriteName={this.handleChangeSpriteName}
+                onChangeSpriteRotationStyle={this.handleChangeSpriteRotationStyle}
                 onChangeSpriteSize={this.handleChangeSpriteSize}
                 onChangeSpriteVisibility={this.handleChangeSpriteVisibility}
                 onChangeSpriteX={this.handleChangeSpriteX}
                 onChangeSpriteY={this.handleChangeSpriteY}
                 onDeleteSprite={this.handleDeleteSprite}
+                onDrop={this.handleDrop}
                 onDuplicateSprite={this.handleDuplicateSprite}
+                onExportSprite={this.handleExportSprite}
                 onFileUploadClick={this.handleFileUploadClick}
                 onPaintSpriteClick={this.handlePaintSpriteClick}
                 onSelectSprite={this.handleSelectSprite}
@@ -140,14 +221,15 @@ const {
 } = TargetPaneComponent.propTypes;
 
 TargetPane.propTypes = {
+    intl: intlShape.isRequired,
     ...targetPaneProps
 };
 
 const mapStateToProps = state => ({
-    editingTarget: state.targets.editingTarget,
-    hoveredTarget: state.hoveredTarget,
-    sprites: Object.keys(state.targets.sprites).reduce((sprites, k) => {
-        let {direction, size, x, y, ...sprite} = state.targets.sprites[k];
+    editingTarget: state.scratchGui.targets.editingTarget,
+    hoveredTarget: state.scratchGui.hoveredTarget,
+    sprites: Object.keys(state.scratchGui.targets.sprites).reduce((sprites, k) => {
+        let {direction, size, x, y, ...sprite} = state.scratchGui.targets.sprites[k];
         if (typeof direction !== 'undefined') direction = Math.round(direction);
         if (typeof x !== 'undefined') x = Math.round(x);
         if (typeof y !== 'undefined') y = Math.round(y);
@@ -155,9 +237,9 @@ const mapStateToProps = state => ({
         sprites[k] = {...sprite, direction, size, x, y};
         return sprites;
     }, {}),
-    stage: state.targets.stage,
-    raiseSprites: state.blockDrag,
-    spriteLibraryVisible: state.modals.spriteLibrary
+    stage: state.scratchGui.targets.stage,
+    raiseSprites: state.scratchGui.blockDrag,
+    spriteLibraryVisible: state.scratchGui.modals.spriteLibrary
 });
 const mapDispatchToProps = dispatch => ({
     onNewSpriteClick: e => {
@@ -172,10 +254,13 @@ const mapDispatchToProps = dispatch => ({
     },
     onReceivedBlocks: receivedBlocks => {
         dispatch(setReceivedBlocks(receivedBlocks));
+    },
+    dispatchUpdateRestore: restoreState => {
+        dispatch(setRestore(restoreState));
     }
 });
 
-export default connect(
+export default injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
-)(TargetPane);
+)(TargetPane));

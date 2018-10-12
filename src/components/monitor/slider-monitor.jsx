@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+
 import styles from './monitor.css';
 
-const SliderMonitor = ({categoryColor, label, min, max, value}) => (
+const SliderMonitor = ({categoryColor, label, min, max, value, onSliderUpdate}) => (
     <div className={styles.defaultMonitor}>
         <div className={styles.row}>
             <div className={styles.label}>
@@ -17,12 +19,12 @@ const SliderMonitor = ({categoryColor, label, min, max, value}) => (
         </div>
         <div className={styles.row}>
             <input
-                className="no-drag" // Class used on parent Draggable to prevent drags
+                className={classNames(styles.slider, 'no-drag')} // Class used on parent Draggable to prevent drags
                 max={max}
                 min={min}
                 type="range"
                 value={value}
-                // @todo onChange callback
+                onChange={onSliderUpdate}
             />
         </div>
 
@@ -34,7 +36,7 @@ SliderMonitor.propTypes = {
     label: PropTypes.string.isRequired,
     max: PropTypes.number,
     min: PropTypes.number,
-    // @todo callback for change events
+    onSliderUpdate: PropTypes.func.isRequired,
     value: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.number
