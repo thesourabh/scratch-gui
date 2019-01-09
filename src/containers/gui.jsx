@@ -35,6 +35,7 @@ import storage from '../lib/storage';
 import vmListenerHOC from '../lib/vm-listener-hoc.jsx';
 import vmManagerHOC from '../lib/vm-manager-hoc.jsx';
 import cloudManagerHOC from '../lib/cloud-manager-hoc.jsx';
+import qualityTutorHOC from '../lib/quality-tutor-hoc.jsx';
 
 import GUIComponent from '../components/gui/gui.jsx';
 
@@ -198,7 +199,8 @@ const WrappedGui = compose(
     ProjectSaverHOC,
     vmListenerHOC,
     vmManagerHOC,
-    cloudManagerHOC
+    cloudManagerHOC,
+    qualityTutorHOC
 )(ConnectedGUI);
 
 WrappedGui.setAppElement = ReactModal.setAppElement;
