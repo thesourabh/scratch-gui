@@ -12,6 +12,7 @@ import ShareButton from './share-button.jsx';
 import {ComingSoonTooltip} from '../coming-soon/coming-soon.jsx';
 import Divider from '../divider/divider.jsx';
 import LanguageSelector from '../../containers/language-selector.jsx';
+import SaveStatus from './save-status.jsx';
 import SBFileUploader from '../../containers/sb-file-uploader.jsx';
 import ProjectWatcher from '../../containers/project-watcher.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
@@ -65,6 +66,13 @@ import languageIcon from '../language-selector/language-icon.svg';
 
 import scratchLogo from './scratch-logo.svg';
 
+const messages = defineMessages({
+    confirmNav: {
+        id: 'gui.menuBar.confirmNewWithoutSaving',
+        defaultMessage: 'Replace contents of the current project?',
+        description: 'message for prompting user to confirm that they want to create new project without saving'
+    }
+});
 const ariaMessages = defineMessages({
     language: {
         id: 'gui.menuBar.LanguageSelector',
@@ -149,10 +157,17 @@ class MenuBar extends React.Component {
         ]);
     }
     handleClickNew () {
-        // if canSave===true and canCreateNew===true, it's safe to replace current project,
-        // since we will auto-save first. Else, confirm first.
-        const readyToReplaceProject = (this.props.canSave && this.props.canCreateNew) ||
-            confirm('Replace contents of the current project?'); // eslint-disable-line no-alert
+        let readyToReplaceProject = true;
+        // if the project is dirty, and user owns the project, we will autosave.
+        // but if they are not logged in and can't save, user should consider
+        // downloading or logging in first.
+        // Note that if user is logged in and editing someone else's project,
+        // they'll lose their work.
+        if (this.props.projectChanged && !this.props.canCreateNew) {
+            readyToReplaceProject = confirm( // eslint-disable-line no-alert
+                this.props.intl.formatMessage(messages.confirmNav)
+            );
+        }
         this.props.onRequestCloseFile();
         if (readyToReplaceProject) {
             this.props.onClickNew(this.props.canSave && this.props.canCreateNew);
@@ -284,25 +299,21 @@ class MenuBar extends React.Component {
             <Box
                 className={classNames(
                     this.props.className,
-                    styles.menuBar,
-                    {[styles.saveInProgress]: this.props.isUpdating}
+                    styles.menuBar
                 )}
             >
                 <div className={styles.mainMenu}>
                     <div className={styles.fileGroup}>
                         <div className={classNames(styles.menuBarItem)}>
-                            <a
-                                href="https://scratch.mit.edu"
-                                rel="noopener noreferrer"
-                                target="_blank"
-                            >
-                                <img
-                                    alt="Scratch"
-                                    className={styles.scratchLogo}
-                                    draggable={false}
-                                    src={scratchLogo}
-                                />
-                            </a>
+                            <img
+                                alt="Scratch"
+                                className={classNames(styles.scratchLogo, {
+                                    [styles.clickable]: typeof this.props.onClickLogo !== 'undefined'
+                                })}
+                                draggable={false}
+                                src={scratchLogo}
+                                onClick={this.props.onClickLogo}
+                            />
                         </div>
                         <div
                             className={classNames(styles.menuBarItem, styles.hoverable, styles.languageMenu)}
@@ -344,23 +355,25 @@ class MenuBar extends React.Component {
                                         {newProjectMessage}
                                     </MenuItem>
                                 </MenuSection>
-                                <MenuSection>
-                                    {this.props.canSave ? (
-                                        <MenuItem onClick={this.handleClickSave}>
-                                            {saveNowMessage}
-                                        </MenuItem>
-                                    ) : []}
-                                    {this.props.canCreateCopy ? (
-                                        <MenuItem onClick={this.handleClickSaveAsCopy}>
-                                            {createCopyMessage}
-                                        </MenuItem>
-                                    ) : []}
-                                    {this.props.canRemix ? (
-                                        <MenuItem onClick={this.handleClickRemix}>
-                                            {remixMessage}
-                                        </MenuItem>
-                                    ) : []}
-                                </MenuSection>
+                                {(this.props.canSave || this.props.canCreateCopy || this.props.canRemix) && (
+                                    <MenuSection>
+                                        {this.props.canSave ? (
+                                            <MenuItem onClick={this.handleClickSave}>
+                                                {saveNowMessage}
+                                            </MenuItem>
+                                        ) : []}
+                                        {this.props.canCreateCopy ? (
+                                            <MenuItem onClick={this.handleClickSaveAsCopy}>
+                                                {createCopyMessage}
+                                            </MenuItem>
+                                        ) : []}
+                                        {this.props.canRemix ? (
+                                            <MenuItem onClick={this.handleClickRemix}>
+                                                {remixMessage}
+                                            </MenuItem>
+                                        ) : []}
+                                    </MenuSection>
+                                )}
                                 <MenuSection>
                                     <SBFileUploader onUpdateProjectTitle={this.props.onUpdateProjectTitle}>
                                         {(className, renderFileInput, loadProject) => (
@@ -534,6 +547,11 @@ class MenuBar extends React.Component {
                 {/* show the proper UI in the account menu, given whether the user is
                 logged in, and whether a session is available to log in with */}
                 <div className={styles.accountInfoGroup}>
+                    <div className={styles.menuBarItem}>
+                        {this.props.canSave && (
+                            <SaveStatus />
+                        )}
+                    </div>
                     {this.props.sessionExists ? (
                         this.props.username ? (
                             // ************ user is logged in ************
@@ -707,6 +725,7 @@ MenuBar.propTypes = {
     onClickFile: PropTypes.func,
     onClickLanguage: PropTypes.func,
     onClickLogin: PropTypes.func,
+    onClickLogo: PropTypes.func,
     onClickNew: PropTypes.func,
     onClickRemix: PropTypes.func,
     onClickSave: PropTypes.func,
@@ -723,6 +742,7 @@ MenuBar.propTypes = {
     onShare: PropTypes.func,
     onToggleLoginOpen: PropTypes.func,
     onUpdateProjectTitle: PropTypes.func,
+    projectChanged: PropTypes.bool,
     projectTitle: PropTypes.string,
     renderLogin: PropTypes.func,
     sessionExists: PropTypes.bool,
@@ -746,6 +766,7 @@ const mapStateToProps = state => {
         isShowingProject: getIsShowingProject(loadingState),
         languageMenuOpen: languageMenuOpen(state),
         loginMenuOpen: loginMenuOpen(state),
+        projectChanged: state.scratchGui.projectChanged,
         projectTitle: state.scratchGui.projectTitle,
         sessionExists: state.session && typeof state.session.session !== 'undefined',
         username: user ? user.username : null
