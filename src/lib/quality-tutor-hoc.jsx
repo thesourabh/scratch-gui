@@ -16,7 +16,9 @@ const qualityTutorHOC = function (WrappedComponent) {
             if(blockIds.length>0){
                 const block = workspace.getBlockById(blockIds[0]); 
                 if (!block.isShadow_ && !block.hint) { 
-                    block.setHintText("");
+                    block.setHintText("hintId");
+                }
+                if(block.hint){
                     block.hint.setVisible(true);
                 }
             }
@@ -28,7 +30,7 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         initializeTutor () {
             console.log('initialize tutor');
-            const vm = this.props.vm;
+            const vm = this.vm = this.props.vm;
             const workspace = ScratchBlocks.getMainWorkspace();
 
             this.blockListener = this.blockListener.bind(this);
@@ -42,8 +44,9 @@ const qualityTutorHOC = function (WrappedComponent) {
         }
 
         blockListener (e) {
-            console.log('TODO: listen for ui related to hint');
-            console.log(e);
+            if(e.type==='hint_click'){
+                console.log("TODO: apply transformation for ",e.hintId);
+            }
             this.mockHintGeneration();
         }
 
