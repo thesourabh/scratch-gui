@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
+import { connect } from 'react-redux';
 import ScratchBlocks from 'scratch-blocks';
 
 const qualityTutorHOC = function (WrappedComponent) {
     class QualityTutor extends React.Component {
-        constructor(props){
+        constructor(props) {
             super(props);
             this.hints = [];
         }
@@ -13,44 +13,102 @@ const qualityTutorHOC = function (WrappedComponent) {
         mockHintGeneration() {
             const workspace = ScratchBlocks.getMainWorkspace();
             const blockIds = Object.keys(workspace.blockDB_);
-            if(blockIds.length>0){
-                const block = workspace.getBlockById(blockIds[0]); 
-                if (!block.isShadow_ && !block.hint) { 
+            if (blockIds.length > 0) {
+                const block = workspace.getBlockById(blockIds[0]);
+                if (!block.isShadow_ && !block.hint) {
                     block.setHintText("hintId");
                 }
-                if(block.hint){
+                if (block.hint) {
                     block.hint.setVisible(true);
                 }
             }
         }
 
-        componentDidMount () {
-          this.initializeTutor();
+        componentDidMount() {
+            this.initializeTutor();
         }
 
-        initializeTutor () {
+        initializeTutor() {
             console.log('initialize tutor');
             const vm = this.vm = this.props.vm;
             const workspace = ScratchBlocks.getMainWorkspace();
 
             this.blockListener = this.blockListener.bind(this);
             workspace.addChangeListener(this.blockListener);
-            
-            new Promise( (resolve, reject) => {
-                resolve(Blockly.Xml.workspaceToDom(workspace));
-            } ).then(dom =>{
-                console.log(Blockly.Xml.domToText(dom));
-            });
+            this.isInactive = false;
         }
 
-        blockListener (e) {
-            if(e.type==='hint_click'){
-                console.log("TODO: apply transformation for ",e.hintId);
+
+        blockListener(e) {
+            // this.mockHintGeneration();
+            const inactiveElapseThreshold = 3000;
+            if(this.timerId){
+                clearTimeout(this.timerId);
+                this.timerId = setTimeout(
+                    () => {
+                        const workspace = ScratchBlocks.getMainWorkspace();
+                        new Promise((resolve, reject) =>
+                            resolve(this.getProgramXml()))
+                        .then(xml=> this.sendAnalysisReq('projectId', 'duplicate_code', xml))
+                        .then(json=> {
+                            console.log(json);
+                        });
+
+                        console.log('User Inactive Detected!');
+                    },
+                    inactiveElapseThreshold
+                );  
+            }else{
+                this.timerId = setTimeout(
+                    () => {},
+                    2000
+                );
             }
-            this.mockHintGeneration();
+            
+            if (e.type !== 'hint_click') {
+                return;
+            }
+            console.log("TODO: apply transformation for ", e.hintId);
         }
 
-        render () {
+        sendAnalysisReq(projectId, analysisType, xml) {
+            const url = "http://localhost:8080/analyze";
+            return fetch(url, {
+                method: "POST",
+                mode: "cors",
+                cache: "no-cache",
+                headers: {
+                    "Content-Type": "text/xml",
+                    "id": projectId,
+                    "type": analysisType
+                },
+                body: xml,
+            }).then(res => res.json())
+        }
+
+        getProgramXml() {
+            let targets = "";
+            const stageVariables = this.vm.runtime.getTargetForStage().variables;
+            for (let i = 0; i < this.vm.runtime.targets.length; i++) {
+                const currTarget = this.vm.runtime.targets[i];
+                const currBlocks = currTarget.blocks._blocks;
+                const variableMap = currTarget.variables;
+                const variables = Object.keys(variableMap).map(k => variableMap[k]);
+                const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} name="${currTarget.getName()}"><xml><variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}</xml></${currTarget.isStage ? "stage" : "sprite"}>`;
+        
+                targets += xmlString;
+            }
+            var str = `<program>${targets}</program>`;
+            str = str.replace(/\s+/g, ' '); // Keep only one space character
+            str = str.replace(/>\s*/g, '>');  // Remove space after >
+            str = str.replace(/\s*</g, '<');  // Remove space before <
+        
+            return str;
+        }
+
+
+
+        render() {
             const {
                 vm,
                 canUseCloud,
@@ -62,7 +120,7 @@ const qualityTutorHOC = function (WrappedComponent) {
                     canUseCloud={canUseCloud}
                     vm={vm}
                     {...componentProps}
-                />       
+                />
             );
         }
     }
