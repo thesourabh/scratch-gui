@@ -3,6 +3,10 @@ import React from 'react';
 import { connect } from 'react-redux';
 import ScratchBlocks from 'scratch-blocks';
 
+const isProductionMode = true;
+const localService = 'http://localhost:8080/analyze';
+const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
+
 const qualityTutorHOC = function (WrappedComponent) {
     class QualityTutor extends React.Component {
         constructor(props) {
@@ -105,7 +109,7 @@ const qualityTutorHOC = function (WrappedComponent) {
         }
 
         sendAnalysisReq(projectId, analysisType, xml) {
-            const url = "http://localhost:8080/analyze";
+            const url = isProductionMode? remoteService: localService;
             return fetch(url, {
                 method: "POST",
                 mode: "cors",
