@@ -7,21 +7,28 @@ import React from 'react';
 import VMScratchBlocks from '../lib/blocks';
 import VM from 'scratch-vm';
 
-import analytics from '../lib/analytics';
+import log from '../lib/log.js';
 import Prompt from './prompt.jsx';
-import ConnectionModal from './connection-modal.jsx';
 import BlocksComponent from '../components/blocks/blocks.jsx';
 import ExtensionLibrary from './extension-library.jsx';
 import extensionData from '../lib/libraries/extensions/index.jsx';
 import CustomProcedures from './custom-procedures.jsx';
 import errorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
 import {STAGE_DISPLAY_SIZES} from '../lib/layout-constants';
+import DropAreaHOC from '../lib/drop-area-hoc.jsx';
+import DragConstants from '../lib/drag-constants';
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
 import {activateColorPicker} from '../reducers/color-picker';
-import {closeExtensionLibrary} from '../reducers/modals';
+import {closeExtensionLibrary, openSoundRecorder, openConnectionModal} from '../reducers/modals';
 import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/custom-procedures';
+import {setConnectionModalExtensionId} from '../reducers/connection-modal';
+
+import {
+    activateTab,
+    SOUNDS_TAB_INDEX
+} from '../reducers/editor-tab';
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -32,6 +39,10 @@ const addFunctionListener = (object, property, callback) => {
     };
 };
 
+const DroppableBlocks = DropAreaHOC([
+    DragConstants.BACKPACK_CODE
+])(BlocksComponent);
+
 class Blocks extends React.Component {
     constructor (props) {
         super(props);
@@ -41,8 +52,9 @@ class Blocks extends React.Component {
             'detachVM',
             'handleCategorySelected',
             'handleConnectionModalStart',
-            'handleConnectionModalClose',
+            'handleDrop',
             'handleStatusButtonUpdate',
+            'handleOpenSoundRecorder',
             'handlePromptStart',
             'handlePromptCallback',
             'handlePromptClose',
@@ -62,10 +74,11 @@ class Blocks extends React.Component {
         ]);
         this.ScratchBlocks.prompt = this.handlePromptStart;
         this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
+        this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
+
         this.state = {
             workspaceMetrics: {},
-            prompt: null,
-            connectionModal: null
+            prompt: null
         };
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
         this.toolboxUpdateQueue = [];
@@ -77,7 +90,7 @@ class Blocks extends React.Component {
         const workspaceConfig = defaultsDeep({},
             Blocks.defaultOptions,
             this.props.options,
-            {toolbox: this.props.toolboxXML}
+            {rtl: this.props.isRtl, toolbox: this.props.toolboxXML}
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
 
@@ -94,14 +107,15 @@ class Blocks extends React.Component {
         addFunctionListener(this.workspace, 'zoom', this.onWorkspaceMetricsChange);
 
         this.attachVM();
-        this.setLocale();
-
-        analytics.pageview('/editors/blocks');
+        // Only update blocks/vm locale when visible to avoid sizing issues
+        // If locale changes while not visible it will get handled in didUpdate
+        if (this.props.isVisible) {
+            this.setLocale();
+        }
     }
     shouldComponentUpdate (nextProps, nextState) {
         return (
             this.state.prompt !== nextState.prompt ||
-            this.state.connectionModal !== nextState.connectionModal ||
             this.props.isVisible !== nextProps.isVisible ||
             this.props.toolboxXML !== nextProps.toolboxXML ||
             this.props.extensionLibraryVisible !== nextProps.extensionLibraryVisible ||
@@ -115,10 +129,6 @@ class Blocks extends React.Component {
         // If any modals are open, call hideChaff to close z-indexed field editors
         if (this.props.anyModalVisible && !prevProps.anyModalVisible) {
             this.ScratchBlocks.hideChaff();
-        }
-
-        if (prevProps.locale !== this.props.locale) {
-            this.setLocale();
         }
 
         if (prevProps.toolboxXML !== this.props.toolboxXML) {
@@ -139,9 +149,15 @@ class Blocks extends React.Component {
         // @todo hack to reload the workspace due to gui bug #413
         if (this.props.isVisible) { // Scripts tab
             this.workspace.setVisible(true);
-            this.props.vm.refreshWorkspace();
-            // Re-enable toolbox refreshes without causing one. See #updateToolbox for more info.
-            this.workspace.toolboxRefreshEnabled_ = true;
+            if (prevProps.locale !== this.props.locale || this.props.locale !== this.props.vm.getLocale()) {
+                // call setLocale if the locale has changed, or changed while the blocks were hidden.
+                // vm.getLocale() will be out of sync if locale was changed while not visible
+                this.setLocale();
+            } else {
+                this.props.vm.refreshWorkspace();
+                this.updateToolbox();
+            }
+
             window.dispatchEvent(new Event('resize'));
         } else {
             this.workspace.setVisible(false);
@@ -158,8 +174,8 @@ class Blocks extends React.Component {
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
         this.props.vm.setLocale(this.props.locale, this.props.messages)
             .then(() => {
-                this.workspace.updateToolbox(this.props.toolboxXML);
                 this.props.vm.refreshWorkspace();
+                this.updateToolbox();
                 this.workspace.getFlyout().setRecyclingEnabled(true);
             });
     }
@@ -214,7 +230,7 @@ class Blocks extends React.Component {
         this.props.vm.addListener('EXTENSION_ADDED', this.handleExtensionAdded);
         this.props.vm.addListener('BLOCKSINFO_UPDATE', this.handleBlocksInfoUpdate);
         this.props.vm.addListener('PERIPHERAL_CONNECTED', this.handleStatusButtonUpdate);
-        this.props.vm.addListener('PERIPHERAL_ERROR', this.handleStatusButtonUpdate);
+        this.props.vm.addListener('PERIPHERAL_DISCONNECTED', this.handleStatusButtonUpdate);
     }
     detachVM () {
         this.props.vm.removeListener('SCRIPT_GLOW_ON', this.onScriptGlowOn);
@@ -227,7 +243,7 @@ class Blocks extends React.Component {
         this.props.vm.removeListener('EXTENSION_ADDED', this.handleExtensionAdded);
         this.props.vm.removeListener('BLOCKSINFO_UPDATE', this.handleBlocksInfoUpdate);
         this.props.vm.removeListener('PERIPHERAL_CONNECTED', this.handleStatusButtonUpdate);
-        this.props.vm.removeListener('PERIPHERAL_ERROR', this.handleStatusButtonUpdate);
+        this.props.vm.removeListener('PERIPHERAL_DISCONNECTED', this.handleStatusButtonUpdate);
     }
 
     updateToolboxBlockValue (id, value) {
@@ -243,7 +259,7 @@ class Blocks extends React.Component {
     }
 
     onTargetsUpdate () {
-        if (this.props.vm.editingTarget) {
+        if (this.props.vm.editingTarget && this.workspace.getFlyout()) {
             ['glide', 'move', 'set'].forEach(prefix => {
                 this.updateToolboxBlockValue(`${prefix}x`, Math.round(this.props.vm.editingTarget.x).toString());
                 this.updateToolboxBlockValue(`${prefix}y`, Math.round(this.props.vm.editingTarget.y).toString());
@@ -294,7 +310,23 @@ class Blocks extends React.Component {
         // Remove and reattach the workspace listener (but allow flyout events)
         this.workspace.removeChangeListener(this.props.vm.blockListener);
         const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
-        this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+        try {
+            this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+        } catch (error) {
+            // The workspace is likely incomplete. What did update should be
+            // functional.
+            //
+            // Instead of throwing the error, by logging it and continuing as
+            // normal lets the other workspace update processes complete in the
+            // gui and vm, which lets the vm run even if the workspace is
+            // incomplete. Throwing the error would keep things like setting the
+            // correct editing target from happening which can interfere with
+            // some blocks and processes in the vm.
+            if (error.message) {
+                error.message = `Workspace Update Error: ${error.message}`;
+            }
+            log.error(error);
+        }
         this.workspace.addChangeListener(this.props.vm.blockListener);
 
         if (this.props.vm.editingTarget && this.state.workspaceMetrics[this.props.vm.editingTarget.id]) {
@@ -304,6 +336,11 @@ class Blocks extends React.Component {
             this.workspace.scale = scale;
             this.workspace.resize();
         }
+
+        // Clear the undo state of the workspace since this is a
+        // fresh workspace and we don't want any changes made to another sprites
+        // workspace to be 'undone' here.
+        this.workspace.clearUndo();
     }
     handleExtensionAdded (blocksInfo) {
         // select JSON from each block info object then reject the pseudo-blocks which don't have JSON, like separators
@@ -325,7 +362,7 @@ class Blocks extends React.Component {
     }
     handleCategorySelected (categoryId) {
         const extension = extensionData.find(ext => ext.extensionId === categoryId);
-        if (extension && extension.launchDeviceConnectionFlow) {
+        if (extension && extension.launchPeripheralConnectionFlow) {
             this.handleConnectionModalStart(categoryId);
         }
 
@@ -342,34 +379,33 @@ class Blocks extends React.Component {
             this.ScratchBlocks.Msg.VARIABLE_MODAL_TITLE;
         p.prompt.varType = typeof optVarType === 'string' ?
             optVarType : this.ScratchBlocks.SCALAR_VARIABLE_TYPE;
-        p.prompt.showMoreOptions =
+        p.prompt.showVariableOptions = // This flag means that we should show variable/list options about scope
             optVarType !== this.ScratchBlocks.BROADCAST_MESSAGE_VARIABLE_TYPE &&
             p.prompt.title !== this.ScratchBlocks.Msg.RENAME_VARIABLE_MODAL_TITLE &&
             p.prompt.title !== this.ScratchBlocks.Msg.RENAME_LIST_MODAL_TITLE;
+        p.prompt.showCloudOption = (optVarType === this.ScratchBlocks.SCALAR_VARIABLE_TYPE) && this.props.canUseCloud;
         this.setState(p);
     }
     handleConnectionModalStart (extensionId) {
-        const extension = extensionData.find(ext => ext.extensionId === extensionId);
-        if (extension) {
-            this.setState({connectionModal: {
-                extensionId: extensionId,
-                deviceImage: extension.deviceImage,
-                smallDeviceImage: extension.smallDeviceImage,
-                name: extension.name
-            }});
-        }
-    }
-    handleConnectionModalClose () {
-        this.setState({connectionModal: null});
+        this.props.onOpenConnectionModal(extensionId);
     }
     handleStatusButtonUpdate () {
         this.ScratchBlocks.refreshStatusButtons(this.workspace);
     }
-    handlePromptCallback (input, optionSelection) {
+    handleOpenSoundRecorder () {
+        this.props.onOpenSoundRecorder();
+    }
+
+    /*
+     * Pass along information about proposed name and variable options (scope and isCloud)
+     * and additional potentially conflicting variable names from the VM
+     * to the variable validation prompt callback used in scratch-blocks.
+     */
+    handlePromptCallback (input, variableOptions) {
         this.state.prompt.callback(
             input,
             this.props.vm.runtime.getAllVarNamesOfType(this.state.prompt.varType),
-            optionSelection);
+            variableOptions);
         this.handlePromptClose();
     }
     handlePromptClose () {
@@ -381,17 +417,29 @@ class Blocks extends React.Component {
         ws.refreshToolboxSelection_();
         ws.toolbox_.scrollToCategoryById('myBlocks');
     }
+    handleDrop (dragInfo) {
+        fetch(dragInfo.payload.bodyUrl)
+            .then(response => response.json())
+            .then(blocks => this.props.vm.shareBlocksToTarget(blocks, this.props.vm.editingTarget.id))
+            .then(() => {
+                this.props.vm.refreshWorkspace();
+            });
+    }
     render () {
         /* eslint-disable no-unused-vars */
         const {
             anyModalVisible,
+            canUseCloud,
             customProceduresVisible,
             extensionLibraryVisible,
             options,
             stageSize,
             vm,
+            isRtl,
             isVisible,
             onActivateColorPicker,
+            onOpenConnectionModal,
+            onOpenSoundRecorder,
             updateToolboxState,
             onActivateCustomProcedures,
             onRequestCloseExtensionLibrary,
@@ -401,31 +449,23 @@ class Blocks extends React.Component {
         } = this.props;
         /* eslint-enable no-unused-vars */
         return (
-            <div>
-                <BlocksComponent
+            <React.Fragment>
+                <DroppableBlocks
                     componentRef={this.setBlocks}
+                    onDrop={this.handleDrop}
                     {...props}
                 />
                 {this.state.prompt ? (
                     <Prompt
+                        defaultValue={this.state.prompt.defaultValue}
                         isStage={vm.runtime.getEditingTarget().isStage}
                         label={this.state.prompt.message}
-                        placeholder={this.state.prompt.defaultValue}
-                        showMoreOptions={this.state.prompt.showMoreOptions}
+                        showCloudOption={this.state.prompt.showCloudOption}
+                        showVariableOptions={this.state.prompt.showVariableOptions}
                         title={this.state.prompt.title}
+                        vm={vm}
                         onCancel={this.handlePromptClose}
                         onOk={this.handlePromptCallback}
-                    />
-                ) : null}
-                {this.state.connectionModal ? (
-                    <ConnectionModal
-                        deviceImage={this.state.connectionModal.deviceImage}
-                        extensionId={this.state.connectionModal.extensionId}
-                        name={this.state.connectionModal.name}
-                        smallDeviceImage={this.state.connectionModal.smallDeviceImage}
-                        vm={vm}
-                        onCancel={this.handleConnectionModalClose}
-                        onStatusButtonUpdate={this.handleStatusButtonUpdate}
                     />
                 ) : null}
                 {extensionLibraryVisible ? (
@@ -443,20 +483,24 @@ class Blocks extends React.Component {
                         onRequestClose={this.handleCustomProceduresClose}
                     />
                 ) : null}
-            </div>
+            </React.Fragment>
         );
     }
 }
 
 Blocks.propTypes = {
     anyModalVisible: PropTypes.bool,
+    canUseCloud: PropTypes.bool,
     customProceduresVisible: PropTypes.bool,
     extensionLibraryVisible: PropTypes.bool,
+    isRtl: PropTypes.bool,
     isVisible: PropTypes.bool,
     locale: PropTypes.string,
     messages: PropTypes.objectOf(PropTypes.string),
     onActivateColorPicker: PropTypes.func,
     onActivateCustomProcedures: PropTypes.func,
+    onOpenConnectionModal: PropTypes.func,
+    onOpenSoundRecorder: PropTypes.func,
     onRequestCloseCustomProcedures: PropTypes.func,
     onRequestCloseExtensionLibrary: PropTypes.func,
     options: PropTypes.shape({
@@ -526,6 +570,7 @@ const mapStateToProps = state => ({
         state.scratchGui.mode.isFullScreen
     ),
     extensionLibraryVisible: state.scratchGui.modals.extensionLibrary,
+    isRtl: state.locales.isRtl,
     locale: state.locales.locale,
     messages: state.locales.messages,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
@@ -535,6 +580,14 @@ const mapStateToProps = state => ({
 const mapDispatchToProps = dispatch => ({
     onActivateColorPicker: callback => dispatch(activateColorPicker(callback)),
     onActivateCustomProcedures: (data, callback) => dispatch(activateCustomProcedures(data, callback)),
+    onOpenConnectionModal: id => {
+        dispatch(setConnectionModalExtensionId(id));
+        dispatch(openConnectionModal());
+    },
+    onOpenSoundRecorder: () => {
+        dispatch(activateTab(SOUNDS_TAB_INDEX));
+        dispatch(openSoundRecorder());
+    },
     onRequestCloseExtensionLibrary: () => {
         dispatch(closeExtensionLibrary());
     },

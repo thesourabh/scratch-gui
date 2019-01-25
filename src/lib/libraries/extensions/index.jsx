@@ -2,20 +2,28 @@ import React from 'react';
 import {FormattedMessage} from 'react-intl';
 
 import musicImage from './music.png';
+import musicInsetImage from './music-small.svg';
 import penImage from './pen.png';
+import penInsetImage from './pen-small.svg';
 import videoImage from './video-sensing.png';
-import speechImage from './speech.png';
-import microbitImage from './microbit.png';
-import wedoImage from './wedo.png';
-import ev3Image from './ev3.png';
-import boostImage from './boost.png';
+import videoInsetImage from './video-sensing-small.svg';
 import translateImage from './translate.png';
+import translateInsetImage from './translate-small.png';
+import microbitImage from './microbit.png';
+import ev3Image from './ev3.png';
+import wedoImage from './wedo.png';
+import text2speechImage from './text2speech.png';
+import text2speechInsetImage from './text2speech-small.svg';
+import makeymakeyImage from './makeymakey.png';
+import makeymakeyInsetImage from './makeymakey-small.svg';
 
-import ev3DeviceImage from './device-connection/ev3/ev3-hub-illustration.svg';
-import ev3MenuImage from './device-connection/ev3/ev3-small.svg';
-
-import microbitDeviceImage from './device-connection/microbit/microbit-illustration.svg';
-import microbitMenuImage from './device-connection/microbit/microbit-small.svg';
+import microbitPeripheralImage from './peripheral-connection/microbit/microbit-illustration.svg';
+import microbitMenuImage from './peripheral-connection/microbit/microbit-small.svg';
+import ev3PeripheralImage from './peripheral-connection/ev3/ev3-hub-illustration.svg';
+import ev3MenuImage from './peripheral-connection/ev3/ev3-small.svg';
+import wedoPeripheralImage from './peripheral-connection/wedo/wedo-illustration.svg';
+import wedoMenuImage from './peripheral-connection/wedo/wedo-small.svg';
+import wedoButtonImage from './peripheral-connection/wedo/wedo-button-illustration.svg';
 
 export default [
     {
@@ -28,6 +36,7 @@ export default [
         ),
         extensionId: 'music',
         iconURL: musicImage,
+        insetIconURL: musicInsetImage,
         description: (
             <FormattedMessage
                 defaultMessage="Play instruments and drums."
@@ -47,6 +56,7 @@ export default [
         ),
         extensionId: 'pen',
         iconURL: penImage,
+        insetIconURL: penInsetImage,
         description: (
             <FormattedMessage
                 defaultMessage="Draw with your sprites."
@@ -59,37 +69,19 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="Google Translate"
-                description="Name for the 'Google Translate' extension"
-                id="gui.extension.googletranslate.name"
-            />
-        ),
-        extensionId: 'translate',
-        iconURL: translateImage,
-        description: (
-            <FormattedMessage
-                defaultMessage="Translate text into many languages."
-                description="Description for the 'Google Translate' extension. Do not translate 'Google'"
-                id="gui.extension.googletranslate.description"
-            />
-        ),
-        featured: true
-    },
-    {
-        name: (
-            <FormattedMessage
-                defaultMessage="Video Motion"
-                description="Name for the 'Video Motion' extension"
-                id="gui.extension.videomotion.name"
+                defaultMessage="Video Sensing"
+                description="Name for the 'Video Sensing' extension"
+                id="gui.extension.videosensing.name"
             />
         ),
         extensionId: 'videoSensing',
         iconURL: videoImage,
+        insetIconURL: videoInsetImage,
         description: (
             <FormattedMessage
-                defaultMessage="Detect motion with the camera."
-                description="Description for the 'Video Motion' extension"
-                id="gui.extension.videomotion.description"
+                defaultMessage="Sense motion with the camera."
+                description="Description for the 'Video Sensing' extension"
+                id="gui.extension.videosensing.description"
             />
         ),
         featured: true
@@ -97,27 +89,68 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="Speech Recognition"
-                description="Name for the 'Speech Recognition' extension"
-                id="gui.extension.speechrecognition.name"
+                defaultMessage="Text to Speech"
+                description="Name for the Text to Speech extension"
+                id="gui.extension.text2speech.name"
             />
         ),
-        extensionId: 'speech',
-        iconURL: speechImage,
+        extensionId: 'text2speech',
+        collaborator: 'Amazon Web Services',
+        iconURL: text2speechImage,
+        insetIconURL: text2speechInsetImage,
         description: (
             <FormattedMessage
-                defaultMessage="Talk to your projects."
-                description="Description for the 'Speech Recognition' extension"
-                id="gui.extension.speechrecognition.description"
+                defaultMessage="Make your projects talk."
+                description="Description for the Text to speech extension"
+                id="gui.extension.text2speech.description"
             />
         ),
         featured: true,
-        disabled: true
+        internetConnectionRequired: true
+    },
+    {
+        name: (
+            <FormattedMessage
+                defaultMessage="Translate"
+                description="Name for the Translate extension"
+                id="gui.extension.translate.name"
+            />
+        ),
+        extensionId: 'translate',
+        collaborator: 'Google',
+        iconURL: translateImage,
+        insetIconURL: translateInsetImage,
+        description: (
+            <FormattedMessage
+                defaultMessage="Translate text into many languages."
+                description="Description for the Translate extension"
+                id="gui.extension.translate.description"
+            />
+        ),
+        featured: true,
+        internetConnectionRequired: true
+    },
+    {
+        name: 'Makey Makey',
+        extensionId: 'makeymakey',
+        collaborator: 'JoyLabz',
+        iconURL: makeymakeyImage,
+        insetIconURL: makeymakeyInsetImage,
+        description: (
+            <FormattedMessage
+                defaultMessage="Make anything into a key."
+                description="Description for the 'Makey Makey' extension"
+                id="gui.extension.makeymakey.description"
+            />
+        ),
+        featured: true
     },
     {
         name: 'micro:bit',
         extensionId: 'microbit',
+        collaborator: 'micro:bit',
         iconURL: microbitImage,
+        insetIconURL: microbitMenuImage,
         description: (
             <FormattedMessage
                 defaultMessage="Connect your projects with the world."
@@ -126,29 +159,27 @@ export default [
             />
         ),
         featured: true,
-        disabled: true,
-        launchDeviceConnectionFlow: true,
-        deviceImage: microbitDeviceImage,
-        smallDeviceImage: microbitMenuImage
-    },
-    {
-        name: 'LEGO WeDo 2.0',
-        extensionId: 'wedo2',
-        iconURL: wedoImage,
-        description: (
+        disabled: false,
+        bluetoothRequired: true,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: false,
+        peripheralImage: microbitPeripheralImage,
+        smallPeripheralImage: microbitMenuImage,
+        connectingMessage: (
             <FormattedMessage
-                defaultMessage="Build with motors and sensors."
-                description="Description for the 'LEGO WeDo 2.0' extension"
-                id="gui.extension.wedo2.description"
+                defaultMessage="Connecting"
+                description="Message to help people connect to their micro:bit."
+                id="gui.extension.microbit.connectingMessage"
             />
         ),
-        featured: true,
-        disabled: true
+        helpLink: 'https://scratch.mit.edu/microbit'
     },
     {
         name: 'LEGO MINDSTORMS EV3',
         extensionId: 'ev3',
+        collaborator: 'LEGO',
         iconURL: ev3Image,
+        insetIconURL: ev3MenuImage,
         description: (
             <FormattedMessage
                 defaultMessage="Build interactive robots and more."
@@ -157,23 +188,50 @@ export default [
             />
         ),
         featured: true,
-        disabled: true,
-        launchDeviceConnectionFlow: true,
-        deviceImage: ev3DeviceImage,
-        smallDeviceImage: ev3MenuImage
+        disabled: false,
+        bluetoothRequired: true,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: false,
+        peripheralImage: ev3PeripheralImage,
+        smallPeripheralImage: ev3MenuImage,
+        connectingMessage: (
+            <FormattedMessage
+                defaultMessage="Connecting. Make sure the pin on your EV3 is set to 1234."
+                description="Message to help people connect to their EV3. Must note the PIN should be 1234."
+                id="gui.extension.ev3.connectingMessage"
+            />
+        ),
+        helpLink: 'https://scratch.mit.edu/ev3'
     },
     {
-        name: 'LEGO Boost',
-        extensionId: 'boost',
-        iconURL: boostImage,
+        name: 'LEGO WeDo 2.0',
+        extensionId: 'wedo2',
+        collaborator: 'LEGO',
+        iconURL: wedoImage,
+        insetIconURL: wedoMenuImage,
         description: (
             <FormattedMessage
                 defaultMessage="Build with motors and sensors."
-                description="Description for the 'LEGO Boost' extension"
-                id="gui.extension.boost.description"
+                description="Description for the 'LEGO WeDo 2.0' extension"
+                id="gui.extension.wedo2.description"
             />
         ),
         featured: true,
-        disabled: true
+        disabled: false,
+        bluetoothRequired: true,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: true,
+        peripheralImage: wedoPeripheralImage,
+        smallPeripheralImage: wedoMenuImage,
+        peripheralButtonImage: wedoButtonImage,
+        connectingMessage: (
+            <FormattedMessage
+                defaultMessage="Connecting"
+                description="Message to help people connect to their WeDo."
+                id="gui.extension.wedo2.connectingMessage"
+            />
+        ),
+        helpLink: 'https://scratch.mit.edu/wedo'
+
     }
 ];

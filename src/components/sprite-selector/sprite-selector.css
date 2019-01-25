@@ -31,6 +31,7 @@
     */
     box-sizing: border-box;
     width: calc((100% / $sprites-per-row ) - $space);
+    max-width: 6rem;
     min-width: 4rem;
     min-height: 4rem; /* @todo: calc height same as width */
     margin: calc($space / 2);
@@ -54,6 +55,10 @@
     overflow-y: auto;
 }
 
+.scroll-wrapper-dragging {
+    background-color: $drop-highlight;
+}
+
 .items-wrapper {
     display: flex;
     flex-wrap: wrap;
@@ -68,17 +73,23 @@
 .add-button {
     position: absolute;
     bottom: 0.75rem;
+}
+
+[dir="ltr"] .add-button {
     right: 1rem;
-    z-index: $z-index-add-button;
+}
+
+[dir="rtl"] .add-button {
+    left: 1rem;
 }
 
 .raised {
-    background-color: #8cbcff;
+    background-color: $drop-highlight;
     transition: all 0.25s ease;
 }
 
 .raised:hover {
-    background-color: #8cbcff;
+    background-color: $drop-highlight;
     transform: scale(1.05);
 }
 
@@ -87,7 +98,7 @@
     animation-duration: 500ms;
     animation-iteration-count: 1;
     animation-timing-function: ease-in-out;
-    background-color: #8cbcff;
+    background-color: $drop-highlight;
 }
 
 @keyframes wiggle {
@@ -110,5 +121,5 @@
 
 .placeholder > .sprite {
     background: black;
-    filter: opacity(15%) brightness(20%);
+    filter: opacity(15%) brightness(0%);
 }
