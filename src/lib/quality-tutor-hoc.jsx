@@ -74,9 +74,14 @@ const qualityTutorHOC = function (WrappedComponent) {
             if (e.type !== 'hint_click') {
                 return;
             }
-            console.log("TODO: apply transformation for ", e.hintId);
+           
+            if(e.interactionType==='improve_option_click'){
+                this.applyTransformation(e.hintId);    
+            }
 
-            this.applyTransformation(e.hintId);
+            if(e.interactionType==='mouseover'){
+                console.log('TODO: show code hint (e.g. highlight parts that are duplicate)');
+            }
         }
 
         populateHintIcons() {
