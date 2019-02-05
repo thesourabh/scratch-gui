@@ -80,9 +80,26 @@ const qualityTutorHOC = function (WrappedComponent) {
             }
 
             if(e.interactionType==='mouseover'){
-                console.log('TODO: show code hint (e.g. highlight parts that are duplicate)');
+                this.highlightDuplicateBlocks(true);
             }
-        }
+
+            if (e.interactionType === 'mouseout') {
+                this.highlightDuplicateBlocks(false);
+            }
+        };
+
+        highlightDuplicateBlocks (state) {
+            const workspace = ScratchBlocks.getMainWorkspace();
+            for (let recordKey of Object.keys(this.analysisInfo['records'])) {
+                let record = this.analysisInfo['records'][recordKey];
+                if (record.smell.type === 'DuplicateCode') {
+                    let fragments = record.smell['fragments'];
+                    for (let fNo in fragments) {
+                        workspace.highlightBlock(fragments[fNo].stmtIds[0], state);
+                    }
+                }
+            }
+        };
 
         populateHintIcons() {
             const workspace = ScratchBlocks.getMainWorkspace();
