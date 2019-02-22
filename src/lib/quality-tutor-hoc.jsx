@@ -125,9 +125,24 @@ const qualityTutorHOC = function (WrappedComponent) {
             const workspace = ScratchBlocks.getMainWorkspace();
             console.log(actions);
             let actionSeq = Promise.resolve();
+            let newBlock;
             for (let action of actions) {
-                actionSeq = actionSeq.then(() => workspace.blockTransformer.executeAction(action));
+                actionSeq = actionSeq.then(() => {
+                    let result = workspace.blockTransformer.executeAction(action);
+                    if (result && result !== true) {
+                        newBlock = result;
+                    }
+                });
             }
+            actionSeq.then(() => {
+                if (newBlock) {
+                    newBlock.setHintText("Edit");
+                    if (newBlock.hint) {
+                        newBlock.hint.setVisible(true, "edit_procedure");
+                    }
+                    // ScratchBlocks.Procedures.editProcedureCallback_(newBlock);
+                }
+            });
         }
 
         sendAnalysisReq(projectId, analysisType, xml) {
