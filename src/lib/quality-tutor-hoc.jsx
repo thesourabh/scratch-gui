@@ -2,6 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
 import ScratchBlocks from 'scratch-blocks';
+import {emptySprite} from "./empty-assets";
+import sharedMessages from "./shared-messages";
+const {loadCostume} = require('scratch-vm/src/import/load-costume');
+
+import {IntlProvider} from 'react-intl';
+const intlProvider = new IntlProvider({locale: 'en'}, {});
+const {intl} = intlProvider.getChildContext();
 
 const isProductionMode = true;
 const localService = 'http://localhost:8080/analyze';
@@ -110,11 +117,13 @@ const qualityTutorHOC = function (WrappedComponent) {
                     let f = fragments[0]; //use first fragment
                     let anchorBlockId = f.stmtIds[0]; //and first block of each fragment clone to place hint
                     let block = workspace.getBlockById(anchorBlockId);
-                    if (!block.isShadow_ && !block.hint) {
-                        block.setHintText(record.smell.id);
-                    }
-                    if (block.hint) {
-                        block.hint.setVisible(true);
+                    if (block) {
+                        if (!block.isShadow_ && !block.hint) {
+                            block.setHintText(record.smell.id);
+                        }
+                        if (block.hint) {
+                            block.hint.setVisible(true);
+                        }
                     }
                 }
             }
@@ -125,9 +134,56 @@ const qualityTutorHOC = function (WrappedComponent) {
             const workspace = ScratchBlocks.getMainWorkspace();
             console.log(actions);
             let actionSeq = Promise.resolve();
+            let newBlock;
             for (let action of actions) {
-                actionSeq = actionSeq.then(() => workspace.blockTransformer.executeAction(action));
+                actionSeq = actionSeq.then(() => {
+                    let result = workspace.blockTransformer.executeAction(action);
+                    if (result && result !== true) {
+                        newBlock = result;
+                    }
+                });
             }
+            actionSeq.then(() => {
+                if (newBlock) {
+                    newBlock.setHintText("Edit");
+                    if (newBlock.hint) {
+                        newBlock.hint.setVisible(true, "edit_procedure");
+                    }
+                    // ScratchBlocks.Procedures.editProcedureCallback_(newBlock);
+                }
+            });
+        }
+
+        createPaintSprite() {
+            let _this = this;
+            const formatMessage = intl.formatMessage;
+            const emptyItem = emptySprite(
+                formatMessage(sharedMessages.sprite, {index: 1}),
+                formatMessage(sharedMessages.pop),
+                formatMessage(sharedMessages.costume, {index: 1})
+            );
+
+            const originalCostume = this.vm.editingTarget.getCostumes()[0];
+            const clone = Object.assign({}, originalCostume);
+            const md5ext = `${clone.assetId}.${clone.dataFormat}`;
+
+            this.vm.addSprite(JSON.stringify(emptyItem)).then(() => {
+                setTimeout(() => { // Wait for targets update to propagate before tab switching
+                    let targets = _this.vm.runtime.executableTargets;
+                    let lastTarget = targets[targets.length - 1];
+                    let targetId = lastTarget.id;
+                    loadCostume(md5ext, clone, _this.vm.runtime).then(() => {
+                        const target = _this.vm.runtime.getTargetById(targetId);
+                        if (target) {
+                            target.addCostume(clone);
+                            target.setCostume(
+                                target.getCostumes().length - 1
+                            );
+                        }
+                    });
+
+                });
+            });
         }
 
         sendAnalysisReq(projectId, analysisType, xml) {

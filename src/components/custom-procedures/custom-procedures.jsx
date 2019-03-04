@@ -20,6 +20,7 @@ const messages = defineMessages({
 
 const CustomProcedures = props => (
     <Modal
+        id="gui.customProcedures.myblockModal"
         className={styles.modalContent}
         contentLabel={props.intl.formatMessage(messages.myblockModalTitle)}
         onRequestClose={props.onCancel}
