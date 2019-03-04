@@ -153,7 +153,14 @@ const qualityTutorHOC = function (WrappedComponent) {
                 const currBlocks = currTarget.blocks._blocks;
                 const variableMap = currTarget.variables;
                 const variables = Object.keys(variableMap).map(k => variableMap[k]);
-                const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} name="${currTarget.getName()}"><xml><variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}</xml></${currTarget.isStage ? "stage" : "sprite"}>`;
+                const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} 
+                        name="${currTarget.getName()}" x="${currTarget.x}" y="${currTarget.y}"
+                        size="${currTarget.size}" direction="${currTarget.direction}" visible="${currTarget.visible}">
+                        <xml>
+                            <costumes>${currTarget.getCostumes().map(c => '<costume name="' + c.name + '"/>').join('')}</costumes>
+                            <variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}
+                        </xml>
+                        </${currTarget.isStage ? "stage" : "sprite"}>`;
 
                 targets += xmlString;
             }
