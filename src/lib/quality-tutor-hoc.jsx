@@ -21,27 +21,12 @@ const qualityTutorHOC = function (WrappedComponent) {
             this.hints = [];
         }
 
-        mockHintGeneration() {
-            const workspace = ScratchBlocks.getMainWorkspace();
-            const blockIds = Object.keys(workspace.blockDB_);
-            if (blockIds.length > 0) {
-                const block = workspace.getBlockById(blockIds[0]);
-                if (!block.isShadow_ && !block.hint) {
-                    block.setHintText("hintId");
-                }
-                if (block.hint) {
-                    block.hint.setVisible(true);
-                }
-            }
-        }
-
         componentDidMount() {
             this.initializeTutor();
         }
 
         initializeTutor() {
-            console.log('initialize tutor');
-            const vm = this.vm = this.props.vm;
+            this.vm = this.props.vm;
             const workspace = ScratchBlocks.getMainWorkspace();
 
             this.blockListener = this.blockListener.bind(this);
@@ -52,13 +37,11 @@ const qualityTutorHOC = function (WrappedComponent) {
 
 
         blockListener(e) {
-            // this.mockHintGeneration();
             const inactiveElapseThreshold = 3000;
             if (this.timerId) {
                 clearTimeout(this.timerId);
                 this.timerId = setTimeout(
                     () => {
-                        const workspace = ScratchBlocks.getMainWorkspace();
                         new Promise((resolve, reject) =>
                             resolve(this.getProgramXml()))
                             .then(xml => this.sendAnalysisReq('projectId', 'duplicate_code', xml))
@@ -223,10 +206,8 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         getProgramXml() {
             let targets = "";
-            const stageVariables = this.vm.runtime.getTargetForStage().variables;
             for (let i = 0; i < this.vm.runtime.targets.length; i++) {
                 const currTarget = this.vm.runtime.targets[i];
-                const currBlocks = currTarget.blocks._blocks;
                 const variableMap = currTarget.variables;
                 const variables = Object.keys(variableMap).map(k => variableMap[k]);
                 const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} 
