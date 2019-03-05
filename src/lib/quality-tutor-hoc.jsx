@@ -10,7 +10,7 @@ import {IntlProvider} from 'react-intl';
 const intlProvider = new IntlProvider({locale: 'en'}, {});
 const {intl} = intlProvider.getChildContext();
 
-const isProductionMode = false;
+const isProductionMode = true;
 const localService = 'http://localhost:8080/analyze';
 const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
 
@@ -98,12 +98,17 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         highlightDuplicateBlocks (state) {
             const workspace = ScratchBlocks.getMainWorkspace();
+            if (!state) {
+                workspace.removeHighlightBox();
+                return;
+            }
             for (let recordKey of Object.keys(this.analysisInfo['records'])) {
                 let record = this.analysisInfo['records'][recordKey];
                 if (record.smell.type === 'DuplicateCode') {
                     let fragments = record.smell['fragments'];
                     for (let fNo in fragments) {
-                        workspace.highlightBlock(fragments[fNo].stmtIds[0], state);
+                        let blockFragments = fragments[fNo].stmtIds;
+                        workspace.drawHighlightBox(blockFragments[0], blockFragments[blockFragments.length - 1]);
                     }
                 }
             }
@@ -137,7 +142,6 @@ const qualityTutorHOC = function (WrappedComponent) {
             let newBlock;
             for (let action of actions) {
                 actionSeq = actionSeq.then(() => {
-                    console.log(action);
                     let result = workspace.blockTransformer.executeAction(action);
                     if (result && result !== true) {
                         newBlock = result;
