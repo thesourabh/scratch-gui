@@ -77,7 +77,7 @@ export default appTarget => {
             <WrappedGui
                 backpackVisible
                 showComingSoon
-                showPreviewInfo
+                // showPreviewInfo
                 backpackHost={backpackHost}
                 canSave={false}
                 onClickLogo={onClickLogo}
