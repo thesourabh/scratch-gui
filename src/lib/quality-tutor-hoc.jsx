@@ -97,12 +97,17 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         highlightDuplicateBlocks (state) {
             const workspace = ScratchBlocks.getMainWorkspace();
+            if (!state) {
+                workspace.removeHighlightBox();
+                return;
+            }
             for (let recordKey of Object.keys(this.analysisInfo['records'])) {
                 let record = this.analysisInfo['records'][recordKey];
                 if (record.smell.type === 'DuplicateCode') {
                     let fragments = record.smell['fragments'];
                     for (let fNo in fragments) {
-                        workspace.highlightBlock(fragments[fNo].stmtIds[0], state);
+                        let blockFragments = fragments[fNo].stmtIds;
+                        workspace.drawHighlightBox(blockFragments[0], blockFragments[blockFragments.length - 1]);
                     }
                 }
             }
