@@ -2,8 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
 import ScratchBlocks from 'scratch-blocks';
+import {emptySprite} from "./empty-assets";
+import sharedMessages from "./shared-messages";
+const {loadCostume} = require('scratch-vm/src/import/load-costume');
 
-const isProductionMode = true;
+import {IntlProvider} from 'react-intl';
+const intlProvider = new IntlProvider({locale: 'en'}, {});
+const {intl} = intlProvider.getChildContext();
+
+const isProductionMode = false;
 const localService = 'http://localhost:8080/analyze';
 const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
 
@@ -40,6 +47,7 @@ const qualityTutorHOC = function (WrappedComponent) {
             this.blockListener = this.blockListener.bind(this);
             workspace.addChangeListener(this.blockListener);
             this.isInactive = false;
+            window.tutor = this;
         }
 
 
@@ -110,11 +118,13 @@ const qualityTutorHOC = function (WrappedComponent) {
                     let f = fragments[0]; //use first fragment
                     let anchorBlockId = f.stmtIds[0]; //and first block of each fragment clone to place hint
                     let block = workspace.getBlockById(anchorBlockId);
-                    if (!block.isShadow_ && !block.hint) {
-                        block.setHintText(record.smell.id);
-                    }
-                    if (block.hint) {
-                        block.hint.setVisible(true);
+                    if (block) {
+                        if (!block.isShadow_ && !block.hint) {
+                            block.setHintText(record.smell.id||record.smell.smellId);
+                        }
+                        if (block.hint) {
+                            block.hint.setVisible(true);
+                        }
                     }
                 }
             }
@@ -123,12 +133,74 @@ const qualityTutorHOC = function (WrappedComponent) {
         applyTransformation(hintId) {
             let actions = this.analysisInfo.records[hintId].refactoring.actions;
             const workspace = ScratchBlocks.getMainWorkspace();
-            console.log(actions);
             let actionSeq = Promise.resolve();
+            let newBlock;
             for (let action of actions) {
-                actionSeq = actionSeq.then(() => workspace.blockTransformer.executeAction(action));
+                actionSeq = actionSeq.then(() => {
+                    console.log(action);
+                    let result = workspace.blockTransformer.executeAction(action);
+                    if (result && result !== true) {
+                        newBlock = result;
+                    }
+                });
             }
+            actionSeq.then(() => {
+                if (newBlock) {
+                    newBlock.setHintText("Edit");
+                    if (newBlock.hint) {
+                        newBlock.hint.setVisible(true, "edit_procedure");
+                    }
+                    // ScratchBlocks.Procedures.editProcedureCallback_(newBlock);
+                }
+            });
         }
+
+        testCopyCostume(){
+            const sourceTargetName = "Sprite1";
+            const costumeName = "costume1";
+            const destinationTargetName = "Parent";
+            this.copyCostume(sourceTargetName, costumeName, destinationTargetName);    
+        }
+
+        copyCostume(sourceTargetName, costumeName, destinationTargetName){
+            let sourceTarget = this.vm.runtime.getSpriteTargetByName(sourceTargetName);
+            let costumeIdx = sourceTarget.getCostumeIndexByName(costumeName);
+            let costume = sourceTarget.getCostumes()[costumeIdx];
+            let clone = Object.assign({}, costume);
+            let md5ext = `${clone.assetId}.${clone.dataFormat}`;
+
+            let destinationTarget = this.vm.runtime.getSpriteTargetByName(destinationTargetName);
+            loadCostume(md5ext, clone, this.vm.runtime).then(() => {
+                if (destinationTarget) {
+                    destinationTarget.addCostume(clone);
+                    destinationTarget.setCostume(
+                        destinationTarget.getCostumes().length - 1
+                    );
+                }
+            });
+        }
+
+        createEmptySprite(name) {
+            const formatMessage = intl.formatMessage;
+            const emptyItem = emptySprite(
+                name,
+                formatMessage(sharedMessages.pop),
+                formatMessage(sharedMessages.costume, {index: 1})
+            );
+
+            this.vm.addSprite(JSON.stringify(emptyItem));
+        }
+
+        testCreateEmptySprite(){
+            this.createEmptySprite("Parent");
+        }
+
+        deleteSprite(name) {
+            let target = this.vm.runtime.getSpriteTargetByName(name);
+            this.vm.deleteSprite(target.id);
+        }
+
+        
 
         sendAnalysisReq(projectId, analysisType, xml) {
             const url = isProductionMode? remoteService: localService;
