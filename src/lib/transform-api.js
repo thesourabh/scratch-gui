@@ -1,0 +1,70 @@
+import {IntlProvider} from 'react-intl';
+const intlProvider = new IntlProvider({locale: 'en'}, {});
+const {intl} = intlProvider.getChildContext();
+import {emptySprite} from "./empty-assets";
+import sharedMessages from "./shared-messages";
+const {loadCostume} = require('scratch-vm/src/import/load-costume');
+
+const applyTransformation = function(hintId, workspace, analysisInfo) {
+    let actions = analysisInfo.records[hintId].refactoring.actions;
+    let actionSeq = Promise.resolve();
+    let newBlock;
+    for (let action of actions) {
+        actionSeq = actionSeq.then(() => {
+            let result = workspace.blockTransformer.executeAction(action);
+            if (result && result !== true) {
+                newBlock = result;
+            }
+        });
+    }
+    actionSeq.then(() => {
+        if (newBlock) {
+            newBlock.setHintText("Edit");
+            if (newBlock.hint) {
+                newBlock.hint.setVisible(true, "edit_procedure");
+            }
+            // ScratchBlocks.Procedures.editProcedureCallback_(newBlock);
+        }
+    });
+}
+
+const copyCostume = function(vm, sourceTargetName, costumeName, destinationTargetName){
+    let sourceTarget = vm.runtime.getSpriteTargetByName(sourceTargetName);
+    let costumeIdx = sourceTarget.getCostumeIndexByName(costumeName);
+    let costume = sourceTarget.getCostumes()[costumeIdx];
+    let clone = Object.assign({}, costume);
+    let md5ext = `${clone.assetId}.${clone.dataFormat}`;
+
+    let destinationTarget = vm.runtime.getSpriteTargetByName(destinationTargetName);
+    loadCostume(md5ext, clone, vm.runtime).then(() => {
+        if (destinationTarget) {
+            destinationTarget.addCostume(clone);
+            destinationTarget.setCostume(
+                destinationTarget.getCostumes().length - 1
+            );
+        }
+    });
+}
+
+const createEmptySprite = function(vm, name) {
+    const formatMessage = intl.formatMessage;
+    const emptyItem = emptySprite(
+        name,
+        formatMessage(sharedMessages.pop),
+        formatMessage(sharedMessages.costume, {index: 1})
+    );
+
+    vm.addSprite(JSON.stringify(emptyItem));
+}
+
+const deleteSprite = function(vm, name) {
+    let target = vm.runtime.getSpriteTargetByName(name);
+    vm.deleteSprite(target.id);
+}
+
+export {
+    applyTransformation,
+    copyCostume,
+    createEmptySprite,
+    deleteSprite
+}
