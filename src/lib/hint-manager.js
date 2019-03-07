@@ -37,7 +37,7 @@ const populateHintIcons = function(currentTargetName, workspace, analysisInfo) {
             let targets = sprites.map(s=>s.spriteName);
             if(targets.indexOf(currentTargetName)>-1){
                 console.log('TODO: show hint at this editing target' + currentTargetName);
-                const hintData = {"id": "abc"};
+                const hintData = {"id": record.smell.id||record.smell.smellId};
                 workspace.setHint(hintData);
                 workspace.showHint();   
             }

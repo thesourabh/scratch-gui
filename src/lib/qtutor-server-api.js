@@ -27,6 +27,7 @@ const getProgramXml = function(vm) {
                 size="${currTarget.size}" direction="${currTarget.direction}" visible="${currTarget.visible}">
                 <xml>
                     <costumes>${currTarget.getCostumes().map(c => '<costume name="' + c.name + '"/>').join('')}</costumes>
+                    <sounds>${currTarget.getSounds().map(s => '<sound name="' + s.name + '"/>').join('')}</sounds>
                     <variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}
                 </xml>
                 </${currTarget.isStage ? "stage" : "sprite"}>`;
