@@ -30,6 +30,11 @@ const qualityTutorHOC = function (WrappedComponent) {
             workspace.addChangeListener(this.blockListener);
             this.isInactive = false;
             window.tutor = this;
+
+            this.vm.on('workspaceUpdate', () => {
+                console.log(workspace.id);
+                workspace.hideHint();
+            });
         }
 
         blockListener(e) {
@@ -57,18 +62,20 @@ const qualityTutorHOC = function (WrappedComponent) {
         };
 
         analyzeWhenUserBecomeInactive() {
+            const _vm = this.vm;
             if (this.timerId) {
                 clearTimeout(this.timerId);
                 this.timerId = setTimeout(
                     () => {
                         console.log('Inactivity Detected! ...sending analysis request');
                         Promise.resolve()
-                            .then(() => getProgramXml(this.vm))
-                            .then(xml => sendAnalysisReq('projectId', 'duplicate_code', xml, isProductionMode))
+                            .then(() => getProgramXml(_vm))
+                            .then(xml => sendAnalysisReq('projectId', 'duplicate_sprite', xml, isProductionMode))
                             .then(json => {
                                 this.analysisInfo = json;
                                 if (this.analysisInfo) {
-                                    populateHintIcons(ScratchBlocks.getMainWorkspace(), this.analysisInfo);
+                                    let targetName = _vm.editingTarget.getName();
+                                    populateHintIcons(targetName,ScratchBlocks.getMainWorkspace(), this.analysisInfo);
                                 }
                             });
                     }, inactiveElapseThreshold

@@ -15,7 +15,7 @@ const highlightDuplicateBlocks = function(state, workspace, analysisInfo) {
     }
 };
 
-const populateHintIcons = function(workspace, analysisInfo) {
+const populateHintIcons = function(currentTargetName, workspace, analysisInfo) {
     for (let recordKey of Object.keys(analysisInfo['records'])) {
         let record = analysisInfo['records'][recordKey];
         if (record.smell.type === 'DuplicateCode') {
@@ -30,6 +30,16 @@ const populateHintIcons = function(workspace, analysisInfo) {
                 if (block.hint) {
                     block.hint.setVisible(true);
                 }
+            }
+        }
+        if(record.smell.type === 'DuplicateSprite'){
+            let sprites = record.smell['sprites'];
+            let targets = sprites.map(s=>s.spriteName);
+            if(targets.indexOf(currentTargetName)>-1){
+                console.log('TODO: show hint at this editing target' + currentTargetName);
+                const hintData = {"id": "abc"};
+                workspace.setHint(hintData);
+                workspace.showHint();   
             }
         }
     }
