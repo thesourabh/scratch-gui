@@ -21,43 +21,27 @@ const qualityTutorHOC = function (WrappedComponent) {
             this.hints = [];
         }
 
-        mockHintGeneration() {
-            const workspace = ScratchBlocks.getMainWorkspace();
-            const blockIds = Object.keys(workspace.blockDB_);
-            if (blockIds.length > 0) {
-                const block = workspace.getBlockById(blockIds[0]);
-                if (!block.isShadow_ && !block.hint) {
-                    block.setHintText("hintId");
-                }
-                if (block.hint) {
-                    block.hint.setVisible(true);
-                }
-            }
-        }
-
         componentDidMount() {
             this.initializeTutor();
         }
 
         initializeTutor() {
-            console.log('initialize tutor');
-            const vm = this.vm = this.props.vm;
+            this.vm = this.props.vm;
             const workspace = ScratchBlocks.getMainWorkspace();
 
             this.blockListener = this.blockListener.bind(this);
             workspace.addChangeListener(this.blockListener);
             this.isInactive = false;
+            window.tutor = this;
         }
 
 
         blockListener(e) {
-            // this.mockHintGeneration();
             const inactiveElapseThreshold = 3000;
             if (this.timerId) {
                 clearTimeout(this.timerId);
                 this.timerId = setTimeout(
                     () => {
-                        const workspace = ScratchBlocks.getMainWorkspace();
                         new Promise((resolve, reject) =>
                             resolve(this.getProgramXml()))
                             .then(xml => this.sendAnalysisReq('projectId', 'duplicate_code', xml))
@@ -124,7 +108,7 @@ const qualityTutorHOC = function (WrappedComponent) {
                     let block = workspace.getBlockById(anchorBlockId);
                     if (block) {
                         if (!block.isShadow_ && !block.hint) {
-                            block.setHintText(record.smell.id);
+                            block.setHintText(record.smell.id||record.smell.smellId);
                         }
                         if (block.hint) {
                             block.hint.setVisible(true);
@@ -137,7 +121,6 @@ const qualityTutorHOC = function (WrappedComponent) {
         applyTransformation(hintId) {
             let actions = this.analysisInfo.records[hintId].refactoring.actions;
             const workspace = ScratchBlocks.getMainWorkspace();
-            console.log(actions);
             let actionSeq = Promise.resolve();
             let newBlock;
             for (let action of actions) {
@@ -159,37 +142,52 @@ const qualityTutorHOC = function (WrappedComponent) {
             });
         }
 
-        createPaintSprite() {
-            let _this = this;
+        testCopyCostume(){
+            const sourceTargetName = "Sprite1";
+            const costumeName = "costume1";
+            const destinationTargetName = "Parent";
+            this.copyCostume(sourceTargetName, costumeName, destinationTargetName);    
+        }
+
+        copyCostume(sourceTargetName, costumeName, destinationTargetName){
+            let sourceTarget = this.vm.runtime.getSpriteTargetByName(sourceTargetName);
+            let costumeIdx = sourceTarget.getCostumeIndexByName(costumeName);
+            let costume = sourceTarget.getCostumes()[costumeIdx];
+            let clone = Object.assign({}, costume);
+            let md5ext = `${clone.assetId}.${clone.dataFormat}`;
+
+            let destinationTarget = this.vm.runtime.getSpriteTargetByName(destinationTargetName);
+            loadCostume(md5ext, clone, this.vm.runtime).then(() => {
+                if (destinationTarget) {
+                    destinationTarget.addCostume(clone);
+                    destinationTarget.setCostume(
+                        destinationTarget.getCostumes().length - 1
+                    );
+                }
+            });
+        }
+
+        createEmptySprite(name) {
             const formatMessage = intl.formatMessage;
             const emptyItem = emptySprite(
-                formatMessage(sharedMessages.sprite, {index: 1}),
+                name,
                 formatMessage(sharedMessages.pop),
                 formatMessage(sharedMessages.costume, {index: 1})
             );
 
-            const originalCostume = this.vm.editingTarget.getCostumes()[0];
-            const clone = Object.assign({}, originalCostume);
-            const md5ext = `${clone.assetId}.${clone.dataFormat}`;
-
-            this.vm.addSprite(JSON.stringify(emptyItem)).then(() => {
-                setTimeout(() => { // Wait for targets update to propagate before tab switching
-                    let targets = _this.vm.runtime.executableTargets;
-                    let lastTarget = targets[targets.length - 1];
-                    let targetId = lastTarget.id;
-                    loadCostume(md5ext, clone, _this.vm.runtime).then(() => {
-                        const target = _this.vm.runtime.getTargetById(targetId);
-                        if (target) {
-                            target.addCostume(clone);
-                            target.setCostume(
-                                target.getCostumes().length - 1
-                            );
-                        }
-                    });
-
-                });
-            });
+            this.vm.addSprite(JSON.stringify(emptyItem));
         }
+
+        testCreateEmptySprite(){
+            this.createEmptySprite("Parent");
+        }
+
+        deleteSprite(name) {
+            let target = this.vm.runtime.getSpriteTargetByName(name);
+            this.vm.deleteSprite(target.id);
+        }
+
+        
 
         sendAnalysisReq(projectId, analysisType, xml) {
             const url = isProductionMode? remoteService: localService;
@@ -208,13 +206,18 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         getProgramXml() {
             let targets = "";
-            const stageVariables = this.vm.runtime.getTargetForStage().variables;
             for (let i = 0; i < this.vm.runtime.targets.length; i++) {
                 const currTarget = this.vm.runtime.targets[i];
-                const currBlocks = currTarget.blocks._blocks;
                 const variableMap = currTarget.variables;
                 const variables = Object.keys(variableMap).map(k => variableMap[k]);
-                const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} name="${currTarget.getName()}"><xml><variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}</xml></${currTarget.isStage ? "stage" : "sprite"}>`;
+                const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} 
+                        name="${currTarget.getName()}" x="${currTarget.x}" y="${currTarget.y}"
+                        size="${currTarget.size}" direction="${currTarget.direction}" visible="${currTarget.visible}">
+                        <xml>
+                            <costumes>${currTarget.getCostumes().map(c => '<costume name="' + c.name + '"/>').join('')}</costumes>
+                            <variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}
+                        </xml>
+                        </${currTarget.isStage ? "stage" : "sprite"}>`;
 
                 targets += xmlString;
             }
