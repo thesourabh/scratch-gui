@@ -1,6 +1,13 @@
 const localService = 'http://localhost:8080/analyze';
 const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
 
+/**
+ * 
+ * @param {*} projectId 
+ * @param {*} analysisType (duplicate_code, duplicate_sprite, all)
+ * @param {*} xml 
+ * @param {*} isProductionMode 
+ */
 const sendAnalysisReq = function(projectId, analysisType, xml, isProductionMode) {
     const url = isProductionMode? remoteService: localService;
     return fetch(url, {
