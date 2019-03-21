@@ -2,17 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
 import ScratchBlocks from 'scratch-blocks';
-import {emptySprite} from "./empty-assets";
-import sharedMessages from "./shared-messages";
-const {loadCostume} = require('scratch-vm/src/import/load-costume');
 
-import {IntlProvider} from 'react-intl';
-const intlProvider = new IntlProvider({locale: 'en'}, {});
-const {intl} = intlProvider.getChildContext();
+import { copyCostume, createEmptySprite, deleteSprite } from './transform-api';
+import { sendAnalysisReq, getProgramXml } from './qtutor-server-api';
+import { highlightDuplicateBlocks, populateHintIcons } from './hint-manager';
+import { applyTransformation } from './transform-api';
 
 const isProductionMode = true;
-const localService = 'http://localhost:8080/analyze';
-const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
+
+const inactiveElapseThreshold = 3000;
+const dummyJson = null;//{"records":{"69df1af241b4dfd1":{"id":"69df1af241b4dfd1","smell":{"type":"DuplicateSprite","smellId":"69df1af241b4dfd1","sprites":[{"spriteName":"glass water costume"},{"spriteName":"parrot costume"}],"metadata":{"group_size":2,"instance_size":3,"_id":"69df1af241b4dfd1","sprites":["glass water costume","parrot costume"]}},"refactoring":{"smellId":"69df1af241b4dfd1","actions":[{"type":"SpriteCreate","spriteName":"parent"},{"type":"CostumeCopy","name":"glass water","copyDestination":"parent","copySource":"glass water costume"},{"type":"CostumeCopy","name":"parrot-a","copyDestination":"parent","copySource":"parrot costume"},{"type":"BlockCreateAction","blockId":null,"info":null,"targetName":"parent","block_xml":"<block type='event_whenflagclicked' id='lr'>\n      <next><block type='looks_hide' id='Ee'>\n      <next><block type='looks_switchcostumeto' id='Xg' x='0' y='0'>\n      <value name='COSTUME'><shadow type='looks_costume' id='JR'><field name='COSTUME'>glass water</field></shadow></value><next><block type='motion_gotoxy' id='F3' x='0' y='0'>\n      <value name='X'><shadow type='math_number' id='du'><field name='NUM'>-51</field></shadow></value><value name='Y'><shadow type='math_number' id='1c'><field name='NUM'>-73</field></shadow></value><next><block type='control_create_clone_of' id='Et' x='0' y='0'>\n      <value name='CLONE_OPTION'><shadow type='control_create_clone_of_menu' id='dU'><field name='CLONE_OPTION'>_myself_</field></shadow></value><next><block type='looks_switchcostumeto' id='r2' x='0' y='0'>\n      <value name='COSTUME'><shadow type='looks_costume' id='qb'><field name='COSTUME'>parrot-a</field></shadow></value><next><block type='motion_gotoxy' id='Qq' x='0' y='0'>\n      <value name='X'><shadow type='math_number' id='Zg'><field name='NUM'>-123</field></shadow></value><value name='Y'><shadow type='math_number' id='Tl'><field name='NUM'>29</field></shadow></value><next><block type='looks_setsizeto' id='3t' x='0' y='0'>\n      <value name='SIZE'><shadow type='math_number' id='FP'><field name='NUM'>50</field></shadow></value><next><block type='control_create_clone_of' id='tf' x='0' y='0'>\n      <value name='CLONE_OPTION'><shadow type='control_create_clone_of_menu' id='Hf'><field name='CLONE_OPTION'>_myself_</field></shadow></value>\n    </block></next>\n    </block></next>\n    </block></next>\n    </block></next>\n    </block></next>\n    </block></next>\n    </block></next>\n    </block></next>\n    </block>"},{"type":"BlockCreateAction","blockId":null,"info":null,"targetName":"parent","block_xml":"<block type='control_start_as_clone' id='Xh'>\n      <next><block type='looks_show' id='60'>\n      \n    </block></next>\n    </block>"},{"type":"BlockCreateAction","blockId":null,"info":null,"targetName":"parent","block_xml":"<block type='control_start_as_clone' id='rH'>\n      <next><block type='control_forever' id='7K'>\n      <statement name='SUBSTACK'><block type='control_repeat' id='DP'>\n      <value name='TIMES'><shadow type='math_whole_number' id='4q'><field name='NUM'>30</field></shadow></value><statement name='SUBSTACK'><block type='looks_changeeffectby' id='YB'>\n      <field name='EFFECT'>GHOST</field><value name='CHANGE'><shadow type='math_number' id='op'><field name='NUM'>5</field></shadow></value>\n    </block></statement><next><block type='control_repeat' id='Ig'>\n      <value name='TIMES'><shadow type='math_whole_number' id='U2'><field name='NUM'>30</field></shadow></value><statement name='SUBSTACK'><block type='looks_changeeffectby' id='5a'>\n      <field name='EFFECT'>GHOST</field><value name='CHANGE'><shadow type='math_number' id='xh'><field name='NUM'>-5</field></shadow></value>\n    </block></statement>\n    </block></next>\n    </block></statement>\n    </block></next>\n    </block>"},{"type":"BlockCreateAction","blockId":null,"info":null,"targetName":"parent","block_xml":"<block type='control_start_as_clone' id='Y^OJV(wr:O{C8LXT[pWp'>\n      <next><block type='control_forever' id=']ygLb@k;A3~n_,.]KNES'>\n      <statement name='SUBSTACK'><block type='control_if' id='uSu-3[21l=I(,Q2K)Pf6'>\n      <value name='CONDITION'><block type='operator_and' id='=7D[5E2~Hlpf:vN6Fskb'>\n      <value name='OPERAND1'><block type='sensing_mousedown' id='U6f5;]MGCYghE?f+(v0V'>\n      \n    </block></value><value name='OPERAND2'><block type='sensing_touchingobject' id=';6).a6gK}9Y1@`ldsa[P'>\n      <value name='TOUCHINGOBJECTMENU'><shadow type='sensing_touchingobjectmenu' id='t0D3Sn4f#H;g$J+[2krw'><field name='TOUCHINGOBJECTMENU'>_mouse_</field></shadow></value>\n    </block></value>\n    </block></value><statement name='SUBSTACK'><block type='looks_hide' id='L8'>\n      <next><block type='control_wait_until' id='_wait_until_not_clicked_'>\n      <value name='CONDITION'><block type='operator_not' id='N#r5^4W;K-i+YxxzwZ)w'>\n      <value name='OPERAND'><block type='sensing_mousedown' id='/!?68c+:!krjk^?rU_bk'>\n      \n    </block></value>\n    </block></value>\n    </block></next>\n    </block></statement>\n    </block></statement>\n    </block></next>\n    </block>"},{"type":"BlockCreateAction","blockId":null,"info":null,"targetName":"parent","block_xml":"<block type='event_whenkeypressed' id='V~6Zj=k+[Spa[3#ix,Vs' x='0' y='432'>\n      <field name='KEY_OPTION'>space</field><next><block type='looks_show' id='T9Veg;jAt@$FB?6=iPSy'>\n      \n    </block></next>\n    </block>"},{"type":"SpriteDelete","sprite_name":"glass water costume"},{"type":"SpriteDelete","sprite_name":"parrot costume"}],"metadata":{"success":true,"_id":"69df1af241b4dfd1","sprites":["glass water costume","parrot costume"]}}}},"projectId":"projectId"};
+
 
 const qualityTutorHOC = function (WrappedComponent) {
     class QualityTutor extends React.Component {
@@ -28,208 +28,66 @@ const qualityTutorHOC = function (WrappedComponent) {
         initializeTutor() {
             this.vm = this.props.vm;
             const workspace = ScratchBlocks.getMainWorkspace();
-
             this.blockListener = this.blockListener.bind(this);
             workspace.addChangeListener(this.blockListener);
             this.isInactive = false;
             window.tutor = this;
+
+            this.vm.on('workspaceUpdate', () => {
+                workspace.hideHint();
+            });
         }
 
-
         blockListener(e) {
-            const inactiveElapseThreshold = 3000;
-            if (this.timerId) {
-                clearTimeout(this.timerId);
-                this.timerId = setTimeout(
-                    () => {
-                        new Promise((resolve, reject) =>
-                            resolve(this.getProgramXml()))
-                            .then(xml => this.sendAnalysisReq('projectId', 'duplicate_code', xml))
-                            .then(json => {
-                                console.log(json);
-                                this.analysisInfo = json;
-                                this.populateHintIcons();
-                            });
+            const workspace = ScratchBlocks.getMainWorkspace(); // update workspace may change
 
-                        console.log('User Inactive Detected!');
-                    },
-                    inactiveElapseThreshold
-                );
-            } else {
-                this.timerId = setTimeout(
-                    () => { },
-                    2000
-                );
-            }
+            console.log('TODO: if event is not block editing should not check');
+            this.analyzeWhenUserBecomeInactive();
 
             if (e.type !== 'hint_click') {
                 return;
             }
-           
-            if(e.interactionType==='improve_option_click'){
-                this.applyTransformation(e.hintId);    
+
+            if (e.interactionType === 'improve_option_click') {
+                applyTransformation(e.hintId, this.vm,  workspace, this.analysisInfo);
             }
 
-            if(e.interactionType==='mouseover'){
-                this.highlightDuplicateBlocks(true);
+
+            if (e.interactionType === 'mouseover') {
+                highlightDuplicateBlocks(true, workspace, this.analysisInfo);
             }
 
             if (e.interactionType === 'mouseout') {
-                this.highlightDuplicateBlocks(false);
+                highlightDuplicateBlocks(false, workspace, this.analysisInfo);
             }
         };
 
-        highlightDuplicateBlocks (state) {
-            const workspace = ScratchBlocks.getMainWorkspace();
-            if (!state) {
-                workspace.removeHighlightBox();
-                return;
+        analyzeWhenUserBecomeInactive() {
+            const _vm = this.vm;
+            if (this.timerId) {
+                clearTimeout(this.timerId);
+                this.timerId = setTimeout(
+                    () => {
+                        console.log('Inactivity Detected! ...sending analysis request');
+                        Promise.resolve()
+                            .then(() => getProgramXml(_vm))
+                            .then(xml => dummyJson||sendAnalysisReq('projectId', 'all', xml, isProductionMode))
+                            .then(json => {
+                                console.log(json);
+                                this.analysisInfo = json;
+                                if (this.analysisInfo) {
+                                    let targetName = _vm.editingTarget.getName();
+                                    populateHintIcons(targetName,ScratchBlocks.getMainWorkspace(), this.analysisInfo);
+                                }
+                            });
+                    }, inactiveElapseThreshold
+                );
             }
-            for (let recordKey of Object.keys(this.analysisInfo['records'])) {
-                let record = this.analysisInfo['records'][recordKey];
-                if (record.smell.type === 'DuplicateCode') {
-                    let fragments = record.smell['fragments'];
-                    for (let fNo in fragments) {
-                        let blockFragments = fragments[fNo].stmtIds;
-                        workspace.drawHighlightBox(blockFragments[0], blockFragments[blockFragments.length - 1]);
-                    }
-                }
-            }
-        };
-
-        populateHintIcons() {
-            const workspace = ScratchBlocks.getMainWorkspace();
-            for (let recordKey of Object.keys(this.analysisInfo['records'])) {
-                let record = this.analysisInfo['records'][recordKey];
-                if (record.smell.type === 'DuplicateCode') {
-                    let fragments = record.smell['fragments'];
-                    let f = fragments[0]; //use first fragment
-                    let anchorBlockId = f.stmtIds[0]; //and first block of each fragment clone to place hint
-                    let block = workspace.getBlockById(anchorBlockId);
-                    if (block) {
-                        if (!block.isShadow_ && !block.hint) {
-                            block.setHintText(record.smell.id||record.smell.smellId);
-                        }
-                        if (block.hint) {
-                            block.hint.setVisible(true);
-                        }
-                    }
-                }
+            else {
+                // initial timeout when started 
+                this.timerId = setTimeout(() => { }, 2000);
             }
         }
-
-        applyTransformation(hintId) {
-            let actions = this.analysisInfo.records[hintId].refactoring.actions;
-            const workspace = ScratchBlocks.getMainWorkspace();
-            let actionSeq = Promise.resolve();
-            let newBlock;
-            for (let action of actions) {
-                actionSeq = actionSeq.then(() => {
-                    let result = workspace.blockTransformer.executeAction(action);
-                    if (result && result !== true) {
-                        newBlock = result;
-                    }
-                });
-            }
-            actionSeq.then(() => {
-                if (newBlock) {
-                    newBlock.setHintText("Edit");
-                    if (newBlock.hint) {
-                        newBlock.hint.setVisible(true, "edit_procedure");
-                    }
-                    // ScratchBlocks.Procedures.editProcedureCallback_(newBlock);
-                }
-            });
-        }
-
-        testCopyCostume(){
-            const sourceTargetName = "Sprite1";
-            const costumeName = "costume1";
-            const destinationTargetName = "Parent";
-            this.copyCostume(sourceTargetName, costumeName, destinationTargetName);    
-        }
-
-        copyCostume(sourceTargetName, costumeName, destinationTargetName){
-            let sourceTarget = this.vm.runtime.getSpriteTargetByName(sourceTargetName);
-            let costumeIdx = sourceTarget.getCostumeIndexByName(costumeName);
-            let costume = sourceTarget.getCostumes()[costumeIdx];
-            let clone = Object.assign({}, costume);
-            let md5ext = `${clone.assetId}.${clone.dataFormat}`;
-
-            let destinationTarget = this.vm.runtime.getSpriteTargetByName(destinationTargetName);
-            loadCostume(md5ext, clone, this.vm.runtime).then(() => {
-                if (destinationTarget) {
-                    destinationTarget.addCostume(clone);
-                    destinationTarget.setCostume(
-                        destinationTarget.getCostumes().length - 1
-                    );
-                }
-            });
-        }
-
-        createEmptySprite(name) {
-            const formatMessage = intl.formatMessage;
-            const emptyItem = emptySprite(
-                name,
-                formatMessage(sharedMessages.pop),
-                formatMessage(sharedMessages.costume, {index: 1})
-            );
-
-            this.vm.addSprite(JSON.stringify(emptyItem));
-        }
-
-        testCreateEmptySprite(){
-            this.createEmptySprite("Parent");
-        }
-
-        deleteSprite(name) {
-            let target = this.vm.runtime.getSpriteTargetByName(name);
-            this.vm.deleteSprite(target.id);
-        }
-
-        
-
-        sendAnalysisReq(projectId, analysisType, xml) {
-            const url = isProductionMode? remoteService: localService;
-            return fetch(url, {
-                method: "POST",
-                mode: "cors",
-                cache: "no-cache",
-                headers: {
-                    "Content-Type": "text/xml",
-                    "id": projectId,
-                    "type": analysisType
-                },
-                body: xml,
-            }).then(res => res.json())
-        }
-
-        getProgramXml() {
-            let targets = "";
-            for (let i = 0; i < this.vm.runtime.targets.length; i++) {
-                const currTarget = this.vm.runtime.targets[i];
-                const variableMap = currTarget.variables;
-                const variables = Object.keys(variableMap).map(k => variableMap[k]);
-                const xmlString = `<${currTarget.isStage ? "stage " : "sprite "} 
-                        name="${currTarget.getName()}" x="${currTarget.x}" y="${currTarget.y}"
-                        size="${currTarget.size}" direction="${currTarget.direction}" visible="${currTarget.visible}">
-                        <xml>
-                            <costumes>${currTarget.getCostumes().map(c => '<costume name="' + c.name + '"/>').join('')}</costumes>
-                            <variables>${variables.map(v => v.toXML()).join()}</variables>${currTarget.blocks.toXML()}
-                        </xml>
-                        </${currTarget.isStage ? "stage" : "sprite"}>`;
-
-                targets += xmlString;
-            }
-            var str = `<program>${targets}</program>`;
-            str = str.replace(/\s+/g, ' '); // Keep only one space character
-            str = str.replace(/>\s*/g, '>');  // Remove space after >
-            str = str.replace(/\s*</g, '<');  // Remove space before <
-
-            return str;
-        }
-
-
 
         render() {
             const {
