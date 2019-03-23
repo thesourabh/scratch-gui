@@ -21,6 +21,7 @@ import MenuBar from '../menu-bar/menu-bar.jsx';
 import CostumeLibrary from '../../containers/costume-library.jsx';
 import BackdropLibrary from '../../containers/backdrop-library.jsx';
 import Watermark from '../../containers/watermark.jsx';
+import WsOverlay from '../../containers/wsoverlay.jsx';
 
 import Backpack from '../../containers/backpack.jsx';
 import PreviewModal from '../../containers/preview-modal.jsx';
@@ -320,6 +321,9 @@ const GUIComponent = props => {
                                     </Box>
                                     <Box className={styles.watermark}>
                                         <Watermark />
+                                    </Box>
+                                    <Box className="toolkit-overlay">
+                                        <WsOverlay />
                                     </Box>
                                 </TabPanel>
                                 <TabPanel className={tabClassNames.tabPanel}>
