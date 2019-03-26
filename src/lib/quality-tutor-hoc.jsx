@@ -40,8 +40,6 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         blockListener(e) {
             const workspace = ScratchBlocks.getMainWorkspace(); // update workspace may change
-
-            console.log('TODO: if event is not block editing should not check');
             this.analyzeWhenUserBecomeInactive();
 
             if (e.type !== 'hint_click') {
