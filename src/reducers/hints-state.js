@@ -4,10 +4,6 @@ const UPDATE_HINT = 'UPDATE_HINT';
 const PUT_HINT = "PUT_HINT";
 const REMOVE_HINT = "REMOVE_HINT";
 
-const exampleHintItem = {
-
-};
-
 const initialState = {
     timestamp: null,
     hints: []
@@ -19,7 +15,7 @@ const reducer = function (state, action) {
     switch (action.type) {
         case SET_HINTS:
             return {
-                timestamp: new Date().getTime().toLocaleString(),
+                timestamp: action.timestamp,
                 hints: action.hints
             };
         case UPDATE_HINT:
@@ -53,7 +49,8 @@ const reducer = function (state, action) {
 const setHint = function (hints) {
     return {
         type: SET_HINTS,
-        hints: hints
+        hints: hints,
+        timestamp: new Date().toLocaleString()
     };
 }
 

@@ -1,14 +1,13 @@
+import React from "react";
 import bindAll from 'lodash.bindall';
 import omit from 'lodash.omit';
 import PropTypes from 'prop-types';
-import React, { createRef, useRef } from "react";
 import { connect } from 'react-redux';
 
 import VM from 'scratch-vm';
-import storage from '../lib/storage';
-import getCostumeUrl from '../lib/get-costume-url';
 import ScratchBlocks from 'scratch-blocks';
 
+import { setHint, updateHint, putHint, removeHint } from '../reducers/hints-state';
 import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
 
 
@@ -35,26 +34,16 @@ class WsOverlay extends React.Component {
         bindAll(this, [
             'attachVM',
             'detachVM',
-            'getHintIcon',
             'onWorkspaceUpdate',
             'onWorkspaceMetricsChange',
             'onTargetsUpdate',
             'blockListener',
-            'setDomRef',
+            'testGenerateHints',
             'showHintForBlock'
         ]);
         // Asset ID of the current sprite's current costume
         this.decodedAssetId = null;
-        this.domRef = null;
-        this.blockId = null;
-    }
-    setDomRef(element) {
-        this.domRef = element;
-    };
-
-    getHintIcon() {
-        if (!this.props.asset) return null;
-        return getCostumeUrl(this.props.asset);
+        this.counter = 0;
     }
 
     componentDidUpdate(prevProps) {
@@ -81,10 +70,11 @@ class WsOverlay extends React.Component {
     }
 
     onWorkspaceMetricsChange() {
-        const block = this.workspace.getBlockById(this.blockId);
+        const { hintState: { hints } } = this.props;
+        if (hints.length < 0) return;
+        const block = this.workspace.getBlockById(hints[0].blockId);
         if (!block) return;
-        const blockSvg = block.getSvgRoot();
-        this.showHintForBlock(blockSvg);
+        this.showHintForBlock(hints[0].blockId);
     }
 
     onWorkspaceUpdate(data) {
@@ -95,8 +85,13 @@ class WsOverlay extends React.Component {
 
     }
 
+    showHint(hintId) {
+        const { hintState: { hints } } = this.props;
+        this.showHintForBlock(hints[0].blockId);
+    }
+
     showHintForBlock(blockId) {
-        const block = this.workspace.getBlockById(this.blockId);
+        const block = this.workspace.getBlockById(blockId);
         if (!block) return;
         const blockSvg = block.getSvgRoot();
         const blockWidth = blockSvg.getBBox().width;
@@ -114,11 +109,24 @@ class WsOverlay extends React.Component {
         });
     }
 
+    testGenerateHints() {
+        const badBlocks = Object.values(Blockly.getMainWorkspace().blockDB_).filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
+        const hints = badBlocks.map(b => {
+            let oldHint = this.props.hintState.hints.find(h => b.id === h.blockId);
+            if (oldHint) return oldHint;
+            let hintId = this.counter++;
+            let blockId = b.id;
+            return { hintId, blockId };
+        });
+        this.props.setHint(hints);
+        console.log(this.props.hintState);
+    }
+
     blockListener(e) {
-        const testBlocks = Object.values(Blockly.getMainWorkspace().blockDB_).filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
-        this.blockId = testBlocks.length > 0 ? testBlocks[0].id : null;
-        if (this.blockId) {
-            this.showHintForBlock(this.blockId);
+        this.testGenerateHints();
+        const { hintState: { hints } } = this.props;
+        if (hints.length > 0) {
+            this.showHint(hints[0].hintId);
         }
     }
 
@@ -136,32 +144,28 @@ class WsOverlay extends React.Component {
 }
 
 WsOverlay.propTypes = {
-    asset: PropTypes.instanceOf(storage.Asset),
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
 const mapStateToProps = state => {
     const targets = state.scratchGui.targets;
     const currentTargetId = targets.editingTarget;
-
-    let asset;
-    if (currentTargetId) {
-        if (targets.stage.id === currentTargetId) {
-            asset = targets.stage.costume.asset;
-        } else if (targets.sprites.hasOwnProperty(currentTargetId)) {
-            const currentSprite = targets.sprites[currentTargetId];
-            asset = currentSprite.costume.asset;
-        }
-    }
-
     return {
         vm: state.scratchGui.vm,
-        asset: asset
+        hintState: state.scratchGui.hintState,
+        currentTargetId
     };
 };
 
+const mapDispatchToProps = dispatch => {
+    return {
+        setHint: hints => dispatch(setHint(hints))
+        // , updateHint, putHint, removeHint
+    }
+};
+
 const ConnectedComponent = connect(
-    mapStateToProps
+    mapStateToProps, mapDispatchToProps
 )(WsOverlay);
 
 export default ConnectedComponent;
