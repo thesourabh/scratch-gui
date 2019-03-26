@@ -1,20 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
+import HintIcon from './hint-icon.jsx';
 
-import styles from './watermark.css';
-
-const WsOverlay = props => (
-    <div style={props.styles}>
-        <img
-            className={styles.spriteImage}
-            src={props.hintIconURL}
-        />
+const WsOverlayComponent = props => (
+    <div>
+        <HintIcon styles={props.styles} />
     </div>
 );
 
-WsOverlay.propTypes = {
-    hintIconURL: PropTypes.string,
-    styles: PropTypes.object
-};
 
-export default WsOverlay;
+export default WsOverlayComponent;

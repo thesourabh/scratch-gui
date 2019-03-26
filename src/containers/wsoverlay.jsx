@@ -125,9 +125,8 @@ class WsOverlay extends React.Component {
     render() {
         const componentProps = omit(this.props, ['asset', 'vm']);
         return (
-            <div ref={this.setDomRef}>
+            <div>
                 <WsOverlayComponent
-                    hintIconURL={this.getHintIcon()}
                     styles={this.state.styles}
                     {...componentProps}
                 />
