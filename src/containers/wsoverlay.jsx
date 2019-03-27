@@ -10,6 +10,12 @@ import ScratchBlocks from 'scratch-blocks';
 import { setHint, updateHint, putHint, removeHint } from '../reducers/hints-state';
 import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
 
+const DUPLICATE_CODE_SMELL_HINT = "DUPLICATE_CODE_SMELL";
+const CONTEXT_MENU_REFACTOR = "CONTEXT_MENU_REFACTOR";
+const CONTEXT_MENU_INFO = "CONTEXT_MENU_INFO";
+
+const SHAREABLE_CODE_HINT = "SHAREABLE_CODE_HINT";
+const CONTEXT_MENU_CODE_SHARE = "CONTEXT_MENU_CODE_SHARE";
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -19,6 +25,30 @@ const addFunctionListener = (object, property, callback) => {
         return result;
     };
 };
+
+const buildHintContextMenu = (type) => {
+    switch (type) {
+        case DUPLICATE_CODE_SMELL_HINT:
+            return [
+                {
+                    item_name: 'Help me extract method',
+                    item_action: CONTEXT_MENU_REFACTOR
+                },
+                {
+                    item_name: 'Learn more',
+                    item_action: CONTEXT_MENU_INFO
+                }
+            ];
+        case SHAREABLE_CODE_HINT:
+            return [
+                {
+                    item_name: 'Share this procedure',
+                    item_action: CONTEXT_MENU_CODE_SHARE
+                }
+            ]
+    }
+
+}
 
 class WsOverlay extends React.Component {
     constructor(props) {
@@ -116,28 +146,32 @@ class WsOverlay extends React.Component {
     }
 
     getTestHints() {
-        const badBlocks = Object.values(Blockly.getMainWorkspace().blockDB_).filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
-        const hints = badBlocks.map(b => {
+        const blocksDb = Object.values(this.workspace.blockDB_);
+        const badBlocks = blocksDb.filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
+        const procedureDefs = blocksDb.filter(b => !b.isShadow_ && b.type === 'procedures_definition');
+        const smellHints = badBlocks.map(b => {
             let oldHint = this.props.hintState.hints.find(h => b.id === h.blockId);
             if (oldHint) return oldHint;
             let blockId = b.id;
             let hintId = blockId; //hintId is also block id;
 
-            const hintMenuItems = [
-                {
-                    item_name: 'Help me extract method',
-                    item_action: 'REFACTOR',
-                    onHandleClick: this.handleClick
-                },
-                {
-                    item_name: 'Learn more',
-                    item_action: 'INFO',
-                    onHandleClick: this.handleClick
-                }
-            ]
+            const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT);
             return { hintId, blockId, hintMenuItems };
         });
-        this.props.setHint(hints);
+
+        const shareableCodeHints = procedureDefs.map(b => {
+            let oldHint = this.props.hintState.hints.find(h => b.id === h.blockId);
+            if (oldHint) return oldHint;
+            let blockId = b.id;
+            let hintId = blockId; //hintId is also block id;
+
+            const hintMenuItems = buildHintContextMenu(SHAREABLE_CODE_HINT);
+            return { hintId, blockId, hintMenuItems };
+        });
+
+        const allHints = [...smellHints, ...shareableCodeHints];
+
+        this.props.setHint(allHints);
     }
 
     blockListener(e) {
