@@ -37,7 +37,8 @@ class WsOverlay extends React.Component {
             'onWorkspaceUpdate',
             'onWorkspaceMetricsChange',
             'onTargetsUpdate',
-            'blockListener'
+            'blockListener',
+            'onHandleHintMenuItemClick'
         ]);
         // Asset ID of the current sprite's current costume
         this.decodedAssetId = null;
@@ -108,6 +109,12 @@ class WsOverlay extends React.Component {
         this.props.onUpdateHint(hint.hintId, changes);
     }
 
+    onHandleHintMenuItemClick(hintId) {
+        const { hintState: { hints } } = this.props;
+        const hint = hints.find(h => h.hintId === hintId);
+        console.log('TODO for this hint menu item for ' + JSON.stringify(hint));
+    }
+
     getTestHints() {
         const badBlocks = Object.values(Blockly.getMainWorkspace().blockDB_).filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
         const hints = badBlocks.map(b => {
@@ -115,7 +122,20 @@ class WsOverlay extends React.Component {
             if (oldHint) return oldHint;
             let blockId = b.id;
             let hintId = blockId; //hintId is also block id;
-            return { hintId, blockId };
+
+            const hintMenuItems = [
+                {
+                    item_name: 'Help me extract method',
+                    item_type: 'REFACTOR',
+                    onHandleClick: this.handleClick
+                },
+                {
+                    item_name: 'Learn more',
+                    item_type: 'INFO',
+                    onHandleClick: this.handleClick
+                }
+            ]
+            return { hintId, blockId, hintMenuItems };
         });
         this.props.setHint(hints);
     }
@@ -136,6 +156,7 @@ class WsOverlay extends React.Component {
                 <WsOverlayComponent
                     styles={this.state.styles}
                     hints={this.state.hintState}
+                    onHandleHintMenuItemClick={this.onHandleHintMenuItemClick}
                     {...componentProps}
                 />
             </div>
