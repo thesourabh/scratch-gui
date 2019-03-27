@@ -8,7 +8,7 @@ import codeShareIcon from './share-icon.svg';
 import iconStyles from './hint-icon.css';
 import { ContextMenuTrigger } from 'react-contextmenu';
 import { ContextMenu, MenuItem } from '../context-menu/context-menu.jsx';
-import {DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE} from '../../lib/hints/constants';
+import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE } from '../../lib/hints/constants';
 
 
 
@@ -46,7 +46,7 @@ const HintIcon = props => {
             <ContextMenu id={hintId} hideOnLeave={true}>
                 {
                     hintMenuItems.map((menuItem, key) => (
-                        <MenuItem key={key} onClick={() => props.onHandleHintMenuItemClick()(menuItem.item_action)}>
+                        <MenuItem key={key} onClick={() => props.onHandleHintMenuItemClick()(menuItem.itemAction)}>
                             {menuItem.item_name}
                         </MenuItem>
                     ))

@@ -45,7 +45,7 @@ const getProgramXml = function(vm) {
     str = str.replace(/\s+/g, ' '); // Keep only one space character
     str = str.replace(/>\s*/g, '>');  // Remove space after >
     str = str.replace(/\s*</g, '<');  // Remove space before <
-
+    
     return str;
 }
 

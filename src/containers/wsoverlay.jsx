@@ -10,6 +10,7 @@ import ScratchBlocks from 'scratch-blocks';
 import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
 import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE } from '../lib/hints/constants';
+import {getProcedureEntry} from '../lib/hints/hints-util';
 
 const CONTEXT_MENU_REFACTOR = "CONTEXT_MENU_REFACTOR";
 const CONTEXT_MENU_INFO = "CONTEXT_MENU_INFO";
@@ -31,18 +32,18 @@ const buildHintContextMenu = (type) => {
             return [
                 {
                     item_name: 'Help me extract method',
-                    item_action: CONTEXT_MENU_REFACTOR
+                    itemAction: CONTEXT_MENU_REFACTOR
                 },
                 {
                     item_name: 'Learn more',
-                    item_action: CONTEXT_MENU_INFO
+                    itemAction: CONTEXT_MENU_INFO
                 }
             ];
         case SHAREABLE_CODE_HINT_TYPE:
             return [
                 {
                     item_name: 'Share this procedure',
-                    item_action: CONTEXT_MENU_CODE_SHARE
+                    itemAction: CONTEXT_MENU_CODE_SHARE
                 }
             ]
     }
@@ -96,9 +97,9 @@ class WsOverlay extends React.Component {
         this.props.vm.removeListener('targetsUpdate', this.onTargetsUpdate);
     }
 
-    onWorkspaceMetricsChange(e) {
+    onWorkspaceMetricsChange() {
         const { hintState: { hints } } = this.props;
-        
+
         //disregard metrics change when workspace for custom block is shown
         const isProcedureEditorOpened = this.workspace.id!==Blockly.getMainWorkspace().id;
         if (hints.length <= 0||isProcedureEditorOpened) return; 
@@ -144,7 +145,18 @@ class WsOverlay extends React.Component {
     onHandleHintMenuItemClick(hintId, itemAction) {
         const { hintState: { hints } } = this.props;
         const hint = hints.find(h => h.hintId === hintId);
-        console.log('TODO for this hint menu item for ' + hintId + ":" + itemAction);
+        
+        switch(itemAction){
+            case CONTEXT_MENU_REFACTOR:{
+                console.log('Apply refactoring for ' + hintId);
+            }
+            case CONTEXT_MENU_CODE_SHARE:{
+                console.log('Post request to save procedure to library');
+                const block = this.workspace.getBlockById(hint.blockId);
+                const entry = getProcedureEntry(block);
+                console.log(entry);
+            }
+        }
     }
 
     getTestHints() {
