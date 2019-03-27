@@ -89,7 +89,7 @@ class WsOverlay extends React.Component {
         const block = this.workspace.getBlockById(hint.blockId);
         if (!block) return;
         const blockSvg = block.getSvgRoot();
-        const blockWidth = blockSvg.getBBox().width;
+        const blockWidth = block.svgPath_.getBBox().width;
         const hintOffset = 10;
         const computeTop = (blockSvg, workspace) => blockSvg.getBoundingClientRect().y - workspace.svgBackground_.getBoundingClientRect().top;
         const computeLeft = (blockSvg, workspace) => {
