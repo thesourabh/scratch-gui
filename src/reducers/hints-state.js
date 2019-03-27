@@ -19,11 +19,11 @@ const reducer = function (state, action) {
                 hints: action.hints
             };
         case UPDATE_HINT:
-            const { id, changes } = action;
+            const { hintId, changes } = action;
             return {
                 timestamp: state.timestamp,
                 hints: state.hints.map(h => {
-                    if (h.id === id) {
+                    if (h.hintId === hintId) {
                         return Object.assign({}, h, changes);
                     } else {
                         return h;
@@ -38,7 +38,7 @@ const reducer = function (state, action) {
         case REMOVE_HINT:
             return {
                 timestamp,
-                hints: hints.filter(h => h.id !== action.id)
+                hints: hints.filter(h => h.hintId !== action.hintId)
             }
         default:
             return state;
@@ -54,10 +54,10 @@ const setHint = function (hints) {
     };
 }
 
-const updateHint = function (id, changes) {
+const updateHint = function (hintId, changes) {
     return {
         type: UPDATE_HINT,
-        id,
+        hintId,
         changes
     };
 }
@@ -70,10 +70,10 @@ const putHint = function (hint) {
     };
 }
 
-const removeHint = function (id) {
+const removeHint = function (hintId) {
     return {
         type: REMOVE_HINT,
-        id
+        hintId
     }
 }
 

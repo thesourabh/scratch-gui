@@ -32,18 +32,15 @@ class WsOverlay extends React.Component {
         };
 
         bindAll(this, [
-            'attachVM',
-            'detachVM',
+            // 'attachVM',
+            // 'detachVM',
             'onWorkspaceUpdate',
             'onWorkspaceMetricsChange',
             'onTargetsUpdate',
-            'blockListener',
-            'testGenerateHints',
-            'showHintForBlock'
+            'blockListener'
         ]);
         // Asset ID of the current sprite's current costume
         this.decodedAssetId = null;
-        this.counter = 0;
     }
 
     componentDidUpdate(prevProps) {
@@ -71,10 +68,8 @@ class WsOverlay extends React.Component {
 
     onWorkspaceMetricsChange() {
         const { hintState: { hints } } = this.props;
-        if (hints.length < 0) return;
-        const block = this.workspace.getBlockById(hints[0].blockId);
-        if (!block) return;
-        this.showHintForBlock(hints[0].blockId);
+        if (hints.length <= 0) return;
+        this.showHint();
     }
 
     onWorkspaceUpdate(data) {
@@ -85,13 +80,13 @@ class WsOverlay extends React.Component {
 
     }
 
-    showHint(hintId) {
+    showHint() {
         const { hintState: { hints } } = this.props;
-        this.showHintForBlock(hints[0].blockId);
+        hints.map(h => this.updateHintTracking(h));
     }
 
-    showHintForBlock(blockId) {
-        const block = this.workspace.getBlockById(blockId);
+    updateHintTracking(hint) {
+        const block = this.workspace.getBlockById(hint.blockId);
         if (!block) return;
         const blockSvg = block.getSvgRoot();
         const blockWidth = blockSvg.getBBox().width;
@@ -100,33 +95,37 @@ class WsOverlay extends React.Component {
         const computeLeft = (blockSvg, workspace) => {
             return blockSvg.getBoundingClientRect().x - workspace.svgBackground_.getBoundingClientRect().left + (blockWidth + hintOffset) * this.workspace.scale;
         }
-        this.setState({
+
+        const changes = {
             styles: {
                 position: 'absolute',
                 top: computeTop(blockSvg, this.workspace) + 'px',
                 left: computeLeft(blockSvg, this.workspace) + 'px'
             }
-        });
+        };
+
+
+        this.props.onUpdateHint(hint.hintId, changes);
     }
 
-    testGenerateHints() {
+    getTestHints() {
         const badBlocks = Object.values(Blockly.getMainWorkspace().blockDB_).filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
         const hints = badBlocks.map(b => {
             let oldHint = this.props.hintState.hints.find(h => b.id === h.blockId);
             if (oldHint) return oldHint;
-            let hintId = this.counter++;
             let blockId = b.id;
+            let hintId = blockId; //hintId is also block id;
             return { hintId, blockId };
         });
         this.props.setHint(hints);
-        console.log(this.props.hintState);
     }
 
     blockListener(e) {
-        this.testGenerateHints();
+        if (this.workspace.isDragging()) return;
+        this.getTestHints();
         const { hintState: { hints } } = this.props;
         if (hints.length > 0) {
-            this.showHint(hints[0].hintId);
+            this.showHint();
         }
     }
 
@@ -136,6 +135,7 @@ class WsOverlay extends React.Component {
             <div>
                 <WsOverlayComponent
                     styles={this.state.styles}
+                    hints={this.state.hintState}
                     {...componentProps}
                 />
             </div>
@@ -159,8 +159,9 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
     return {
-        setHint: hints => dispatch(setHint(hints))
-        // , updateHint, putHint, removeHint
+        setHint: hints => dispatch(setHint(hints)),
+        onUpdateHint: (hintId, changes) => dispatch(updateHint(hintId, changes))
+        , putHint, removeHint
     }
 };
 
