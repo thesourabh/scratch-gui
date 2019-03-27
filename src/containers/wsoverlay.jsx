@@ -109,10 +109,10 @@ class WsOverlay extends React.Component {
         this.props.onUpdateHint(hint.hintId, changes);
     }
 
-    onHandleHintMenuItemClick(hintId) {
+    onHandleHintMenuItemClick(hintId, itemAction) {
         const { hintState: { hints } } = this.props;
         const hint = hints.find(h => h.hintId === hintId);
-        console.log('TODO for this hint menu item for ' + JSON.stringify(hint));
+        console.log('TODO for this hint menu item for ' + hintId + ":" + itemAction);
     }
 
     getTestHints() {
@@ -126,12 +126,12 @@ class WsOverlay extends React.Component {
             const hintMenuItems = [
                 {
                     item_name: 'Help me extract method',
-                    item_type: 'REFACTOR',
+                    item_action: 'REFACTOR',
                     onHandleClick: this.handleClick
                 },
                 {
                     item_name: 'Learn more',
-                    item_type: 'INFO',
+                    item_action: 'INFO',
                     onHandleClick: this.handleClick
                 }
             ]

@@ -10,7 +10,7 @@ const WsOverlayComponent = props => {
             {hints
                 .filter(h => h.styles)
                 .map(h => <HintIcon key={h.hintId} hint={h}
-                    onHandleHintMenuItemClick={() => props.onHandleHintMenuItemClick(h.hintId)} />)
+                    onHandleHintMenuItemClick={() => itemAction => props.onHandleHintMenuItemClick(h.hintId, itemAction)} />)
             }
         </div>
     );

@@ -23,7 +23,7 @@ const HintIcon = props => {
             <ContextMenu id={hintId} hideOnLeave={true}>
                 {
                     hintMenuItems.map((menuItem, key) => (
-                        <MenuItem key={key} onClick={props.onHandleHintMenuItemClick}>
+                        <MenuItem key={key} onClick={() => props.onHandleHintMenuItemClick()(menuItem.item_action)}>
                             {menuItem.item_name}
                         </MenuItem>
                     ))
