@@ -7,14 +7,13 @@ import { connect } from 'react-redux';
 import VM from 'scratch-vm';
 import ScratchBlocks from 'scratch-blocks';
 
-import { setHint, updateHint, putHint, removeHint } from '../reducers/hints-state';
+import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
 import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
+import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE } from '../lib/hints/constants';
 
-const DUPLICATE_CODE_SMELL_HINT = "DUPLICATE_CODE_SMELL";
 const CONTEXT_MENU_REFACTOR = "CONTEXT_MENU_REFACTOR";
 const CONTEXT_MENU_INFO = "CONTEXT_MENU_INFO";
 
-const SHAREABLE_CODE_HINT = "SHAREABLE_CODE_HINT";
 const CONTEXT_MENU_CODE_SHARE = "CONTEXT_MENU_CODE_SHARE";
 
 const addFunctionListener = (object, property, callback) => {
@@ -28,7 +27,7 @@ const addFunctionListener = (object, property, callback) => {
 
 const buildHintContextMenu = (type) => {
     switch (type) {
-        case DUPLICATE_CODE_SMELL_HINT:
+        case DUPLICATE_CODE_SMELL_HINT_TYPE:
             return [
                 {
                     item_name: 'Help me extract method',
@@ -39,7 +38,7 @@ const buildHintContextMenu = (type) => {
                     item_action: CONTEXT_MENU_INFO
                 }
             ];
-        case SHAREABLE_CODE_HINT:
+        case SHAREABLE_CODE_HINT_TYPE:
             return [
                 {
                     item_name: 'Share this procedure',
@@ -97,9 +96,12 @@ class WsOverlay extends React.Component {
         this.props.vm.removeListener('targetsUpdate', this.onTargetsUpdate);
     }
 
-    onWorkspaceMetricsChange() {
+    onWorkspaceMetricsChange(e) {
         const { hintState: { hints } } = this.props;
-        if (hints.length <= 0) return;
+        
+        //disregard metrics change when workspace for custom block is shown
+        const isProcedureEditorOpened = this.workspace.id!==Blockly.getMainWorkspace().id;
+        if (hints.length <= 0||isProcedureEditorOpened) return; 
         this.showHint();
     }
 
@@ -155,8 +157,8 @@ class WsOverlay extends React.Component {
             let blockId = b.id;
             let hintId = blockId; //hintId is also block id;
 
-            const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT);
-            return { hintId, blockId, hintMenuItems };
+            const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT_TYPE);
+            return { type: DUPLICATE_CODE_SMELL_HINT_TYPE, hintId, blockId, hintMenuItems };
         });
 
         const shareableCodeHints = procedureDefs.map(b => {
@@ -165,8 +167,8 @@ class WsOverlay extends React.Component {
             let blockId = b.id;
             let hintId = blockId; //hintId is also block id;
 
-            const hintMenuItems = buildHintContextMenu(SHAREABLE_CODE_HINT);
-            return { hintId, blockId, hintMenuItems };
+            const hintMenuItems = buildHintContextMenu(SHAREABLE_CODE_HINT_TYPE);
+            return { type: SHAREABLE_CODE_HINT_TYPE, hintId, blockId, hintMenuItems };
         });
 
         const allHints = [...smellHints, ...shareableCodeHints];
@@ -214,8 +216,13 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
     return {
-        setHint: hints => dispatch(setHint(hints)),
-        onUpdateHint: (hintId, changes) => dispatch(updateHint(hintId, changes))
+        setHint: hints => {
+            dispatch(setHint(hints));
+        },
+        onUpdateHint: (hintId, changes) => {
+            dispatch(updateHint(hintId, changes));
+        },
+        setUpdateStatus: isUpdating => dispatch(setUpdateStatus(isUpdating))
         , putHint, removeHint
     }
 };
