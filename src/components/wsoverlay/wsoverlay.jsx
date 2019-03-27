@@ -5,10 +5,14 @@ import HintIcon from './hint-icon.jsx';
 
 const WsOverlayComponent = props => {
     const { hints } = props.hintState;
-    return (<div>
-        {hints.filter(h => h.styles).map(h =>
-            <HintIcon key={h.hintId} hint={h} onHandleHintMenuItemClick={() => props.onHandleHintMenuItemClick(h.hintId)} />)}
-    </div>
+    return (
+        <div>
+            {hints
+                .filter(h => h.styles)
+                .map(h => <HintIcon key={h.hintId} hint={h}
+                    onHandleHintMenuItemClick={() => props.onHandleHintMenuItemClick(h.hintId)} />)
+            }
+        </div>
     );
 };
 

@@ -22,7 +22,7 @@ const HintIcon = props => {
             </ContextMenuTrigger>
             <ContextMenu id={hintId} hideOnLeave={true}>
                 {
-                    hintMenuItems.map((menuItem,key) => (
+                    hintMenuItems.map((menuItem, key) => (
                         <MenuItem key={key} onClick={props.onHandleHintMenuItemClick}>
                             {menuItem.item_name}
                         </MenuItem>
@@ -34,9 +34,5 @@ const HintIcon = props => {
     );
 };
 
-HintIcon.propTypes = {
-    hintIconURL: PropTypes.string,
-    styles: PropTypes.object
-};
 
 export default HintIcon;
