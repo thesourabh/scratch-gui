@@ -27,6 +27,30 @@ const computeHintLocationStyles = function (hint, workspace) {
     return changes;
 };
 
+const analysisInfoToHints = function(analysisInfo) {
+    if(analysisInfo.error) return [];
+    const hints = [];
+    for (let recordKey of Object.keys(analysisInfo['records'])) {
+        let record = analysisInfo['records'][recordKey];
+        let { type, smellId, target, fragments } = record.smell;
+        if (type === 'DuplicateCode') {
+            let f = fragments[0]; //use first fragment
+            let anchorBlockId = f.stmtIds[0]; //and first block of each fragment clone to place hint
+
+
+            const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT_TYPE);
+            const hint = {
+                type: DUPLICATE_CODE_SMELL_HINT_TYPE,
+                hintId: smellId,
+                blockId: anchorBlockId,
+                hintMenuItems
+            };
+            hints.push(hint);
+        }
+    }
+    return hints;
+}
+
 
 const buildHintContextMenu = (type) => {
     switch (type) {
@@ -90,4 +114,5 @@ const formatXmlString = function (xmlStr) {
 }
 
 
-export { getProcedureEntry, formatXmlString, buildHintContextMenu, highlightDuplicateBlocks, computeHintLocationStyles };
+export { getProcedureEntry, formatXmlString, buildHintContextMenu, 
+    highlightDuplicateBlocks, computeHintLocationStyles, analysisInfoToHints };
