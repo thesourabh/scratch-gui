@@ -13,9 +13,9 @@ import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_
 import { computeHintLocationStyles, analysisInfoToHints, getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
 import { sendAnalysisReq, getProgramXml } from '../lib/qtutor-server-api';
 import { applyTransformation } from '../lib/transform-api';
-import { addBlocksToWorkspace, simpleDuplicateXml, getTestHints } from '../lib/hints/hint-test-workspace-setup';
+import { addBlocksToWorkspace, testBlocks, getTestHints } from '../lib/hints/hint-test-workspace-setup';
 
-const isProductionMode = true;
+const isProductionMode = false;
 const isTesting = true;
 
 const addFunctionListener = (object, property, callback) => {
@@ -64,7 +64,9 @@ class WsOverlay extends React.Component {
 
     onWorkspaceUpdate(data) {
         if (isTesting && !this.alreadySetup) {
-            addBlocksToWorkspace(this.workspace, simpleDuplicateXml);
+            addBlocksToWorkspace(this.workspace, testBlocks.simpleDuplicate);
+            addBlocksToWorkspace(this.workspace, testBlocks.simpleDuplicate2);
+            this.workspace.cleanUp();
         }
         this.alreadySetup = true;
     }
@@ -144,7 +146,7 @@ class WsOverlay extends React.Component {
         const hint = this.props.hintState.hints.find(h => h.hintId === hintId);
         switch (hint.type) {
             case DUPLICATE_CODE_SMELL_HINT_TYPE:
-                highlightDuplicateBlocks(true, this.workspace, this.analysisInfo);
+                highlightDuplicateBlocks(hintId, true, this.workspace, this.analysisInfo);
                 break;
         }
     }
@@ -153,7 +155,7 @@ class WsOverlay extends React.Component {
         const hint = this.props.hintState.hints.find(h => h.hintId === hintId);
         switch (hint.type) {
             case DUPLICATE_CODE_SMELL_HINT_TYPE:
-                highlightDuplicateBlocks(false, this.workspace, this.analysisInfo);
+                highlightDuplicateBlocks(hintId, false, this.workspace, this.analysisInfo);
                 break;
         }
     }

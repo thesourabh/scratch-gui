@@ -27,8 +27,8 @@ const computeHintLocationStyles = function (hint, workspace) {
     return changes;
 };
 
-const analysisInfoToHints = function(analysisInfo) {
-    if(analysisInfo.error) return [];
+const analysisInfoToHints = function (analysisInfo) {
+    if (analysisInfo.error) return [];
     const hints = [];
     for (let recordKey of Object.keys(analysisInfo['records'])) {
         let record = analysisInfo['records'][recordKey];
@@ -75,21 +75,20 @@ const buildHintContextMenu = (type) => {
     }
 };
 
-const highlightDuplicateBlocks = function (state, workspace, analysisInfo) {
+const highlightDuplicateBlocks = function (hintId, state, workspace, analysisInfo) {
     if (!state) {
         workspace.removeHighlightBox();
         return;
     }
-    for (let recordKey of Object.keys(analysisInfo['records'])) {
-        let record = analysisInfo['records'][recordKey];
-        if (record.smell.type === 'DuplicateCode') {
-            let fragments = record.smell['fragments'];
-            for (let fNo in fragments) {
-                let blockFragments = fragments[fNo].stmtIds;
-                workspace.drawHighlightBox(blockFragments[0], blockFragments[blockFragments.length - 1]);
-            }
+    const record = analysisInfo['records'][hintId];
+    if (record.smell.type === 'DuplicateCode') {
+        const fragments = record.smell['fragments'];
+        for (let fNo in fragments) {
+            const blockFragments = fragments[fNo].stmtIds;
+            workspace.drawHighlightBox(blockFragments[0], blockFragments[blockFragments.length - 1]);
         }
     }
+
 };
 
 const getProcedureEntry = function (block) {
@@ -114,5 +113,7 @@ const formatXmlString = function (xmlStr) {
 }
 
 
-export { getProcedureEntry, formatXmlString, buildHintContextMenu, 
-    highlightDuplicateBlocks, computeHintLocationStyles, analysisInfoToHints };
+export {
+    getProcedureEntry, formatXmlString, buildHintContextMenu,
+    highlightDuplicateBlocks, computeHintLocationStyles, analysisInfoToHints
+};
