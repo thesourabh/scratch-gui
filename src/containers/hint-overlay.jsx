@@ -11,8 +11,8 @@ import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../re
 import HintOverlayComponent from '../components/hint-overlay/hint-overlay.jsx';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from '../lib/hints/constants';
 import { computeHintLocationStyles, analysisInfoToHints, getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
-import { sendAnalysisReq, getProgramXml } from '../lib/qtutor-server-api';
-import { applyTransformation } from '../lib/transform-api';
+import { sendAnalysisReq, getProgramXml } from '../lib/hints/analysis-server-api';
+import { applyTransformation } from '../lib/hints/transform-api';
 import { addBlocksToWorkspace, testBlocks, getTestHints } from '../lib/hints/hint-test-workspace-setup';
 
 const isProductionMode = true;
@@ -131,15 +131,13 @@ class HintOverlay extends React.Component {
 
     blockListener(e) {
         if (this.workspace.isDragging()) return;
-        const { hintState: { hints } } = this.props;
-        console.log('TODO: remove hints that become invalid by code changes');
-        if (hints.length === 0) {
-            this.analyzeAndGenerateHints().then(() => {
-                if (this.props.hintState.hints.length > 0) {
-                    this.showHint();
-                }
-            });
-        }
+        console.log('TODO: logic to delay analyzing hints waiting for a good time');
+
+        this.analyzeAndGenerateHints().then(() => {
+            if (this.props.hintState.hints.length > 0) {
+                this.showHint();
+            }
+        });
     }
 
     onMouseEnter(hintId) {
