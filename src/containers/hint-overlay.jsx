@@ -8,14 +8,14 @@ import VM from 'scratch-vm';
 import ScratchBlocks from 'scratch-blocks';
 
 import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
-import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
+import HintOverlayComponent from '../components/hint-overlay/hint-overlay.jsx';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from '../lib/hints/constants';
 import { computeHintLocationStyles, analysisInfoToHints, getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
 import { sendAnalysisReq, getProgramXml } from '../lib/qtutor-server-api';
 import { applyTransformation } from '../lib/transform-api';
 import { addBlocksToWorkspace, testBlocks, getTestHints } from '../lib/hints/hint-test-workspace-setup';
 
-const isProductionMode = false;
+const isProductionMode = true;
 const isTesting = true;
 
 const addFunctionListener = (object, property, callback) => {
@@ -28,7 +28,7 @@ const addFunctionListener = (object, property, callback) => {
 };
 
 
-class WsOverlay extends React.Component {
+class HintOverlay extends React.Component {
     constructor(props) {
         super(props);
 
@@ -163,7 +163,7 @@ class WsOverlay extends React.Component {
     render() {
         const componentProps = omit(this.props, ['asset', 'vm']);
         return (
-            <WsOverlayComponent
+            <HintOverlayComponent
                 hints={this.props.hintState}
                 onHandleHintMenuItemClick={this.onHandleHintMenuItemClick}
                 onMouseEnter={this.onMouseEnter}
@@ -174,7 +174,7 @@ class WsOverlay extends React.Component {
     }
 }
 
-WsOverlay.propTypes = {
+HintOverlay.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
@@ -206,6 +206,6 @@ const mapDispatchToProps = dispatch => {
 
 const ConnectedComponent = connect(
     mapStateToProps, mapDispatchToProps
-)(WsOverlay);
+)(HintOverlay);
 
 export default ConnectedComponent;
