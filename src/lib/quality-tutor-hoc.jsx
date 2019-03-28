@@ -7,6 +7,9 @@ import { copyCostume, createEmptySprite, deleteSprite } from './transform-api';
 import { sendAnalysisReq, getProgramXml } from './qtutor-server-api';
 import { highlightDuplicateBlocks, populateHintIcons } from './hint-manager';
 import { applyTransformation } from './transform-api';
+import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
+import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE } from '../lib/hints/constants';
+import {getProcedureEntry, buildHintContextMenu} from '../lib/hints/hints-util';
 
 const isProductionMode = true;
 
@@ -47,7 +50,7 @@ const qualityTutorHOC = function (WrappedComponent) {
             }
 
             if (e.interactionType === 'improve_option_click') {
-                applyTransformation(e.hintId, this.vm,  workspace, this.analysisInfo);
+                applyTransformation(e.hintId, this.vm, workspace, this.analysisInfo);
             }
 
 
@@ -60,6 +63,28 @@ const qualityTutorHOC = function (WrappedComponent) {
             }
         };
 
+        analysisInfoToHints(currentTargetName, workspace, analysisInfo) {
+            console.log('TODO: map smells to hints', analysisInfo);
+            const hints = [];
+            for (let recordKey of Object.keys(analysisInfo['records'])) {
+                let record = analysisInfo['records'][recordKey];
+                let { type, smellId, target, fragments } = record.smell;
+                if (type === 'DuplicateCode') {
+                    let f = fragments[0]; //use first fragment
+                    let anchorBlockId = f.stmtIds[0]; //and first block of each fragment clone to place hint
+                    const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT_TYPE);
+                    const hint = {
+                        type: DUPLICATE_CODE_SMELL_HINT_TYPE,
+                        hintId: smellId,
+                        blockId: anchorBlockId,
+                        hintMenuItems
+                        
+                    };
+                    hints.push(hint);
+                }
+            }
+        }
+
         analyzeWhenUserBecomeInactive() {
             const _vm = this.vm;
             if (this.timerId) {
@@ -69,13 +94,14 @@ const qualityTutorHOC = function (WrappedComponent) {
                         console.log('Inactivity Detected! ...sending analysis request');
                         Promise.resolve()
                             .then(() => getProgramXml(_vm))
-                            .then(xml => dummyJson||sendAnalysisReq('projectId', 'all', xml, isProductionMode))
+                            .then(xml => dummyJson || sendAnalysisReq('projectId', 'all', xml, isProductionMode))
                             .then(json => {
                                 console.log(json);
                                 this.analysisInfo = json;
                                 if (this.analysisInfo) {
                                     let targetName = _vm.editingTarget.getName();
-                                    populateHintIcons(targetName,ScratchBlocks.getMainWorkspace(), this.analysisInfo);
+                                    // populateHintIcons(targetName,ScratchBlocks.getMainWorkspace(), this.analysisInfo);
+                                    this.analysisInfoToHints(targetName, ScratchBlocks.getMainWorkspace(), this.analysisInfo);
                                 }
                             });
                     }, inactiveElapseThreshold

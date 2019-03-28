@@ -9,13 +9,12 @@ import ScratchBlocks from 'scratch-blocks';
 
 import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
 import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
-import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE } from '../lib/hints/constants';
-import {getProcedureEntry} from '../lib/hints/hints-util';
+import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from '../lib/hints/constants';
+import { getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
+import { sendAnalysisReq, getProgramXml } from '../lib/qtutor-server-api';
 
-const CONTEXT_MENU_REFACTOR = "CONTEXT_MENU_REFACTOR";
-const CONTEXT_MENU_INFO = "CONTEXT_MENU_INFO";
-
-const CONTEXT_MENU_CODE_SHARE = "CONTEXT_MENU_CODE_SHARE";
+const isProductionMode = true;
+const inactiveElapseThreshold = 3000;
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -25,30 +24,6 @@ const addFunctionListener = (object, property, callback) => {
         return result;
     };
 };
-
-const buildHintContextMenu = (type) => {
-    switch (type) {
-        case DUPLICATE_CODE_SMELL_HINT_TYPE:
-            return [
-                {
-                    item_name: 'Help me extract method',
-                    itemAction: CONTEXT_MENU_REFACTOR
-                },
-                {
-                    item_name: 'Learn more',
-                    itemAction: CONTEXT_MENU_INFO
-                }
-            ];
-        case SHAREABLE_CODE_HINT_TYPE:
-            return [
-                {
-                    item_name: 'Share this procedure',
-                    itemAction: CONTEXT_MENU_CODE_SHARE
-                }
-            ]
-    }
-
-}
 
 class WsOverlay extends React.Component {
     constructor(props) {
@@ -62,13 +37,13 @@ class WsOverlay extends React.Component {
         };
 
         bindAll(this, [
-            // 'attachVM',
-            // 'detachVM',
             'onWorkspaceUpdate',
             'onWorkspaceMetricsChange',
             'onTargetsUpdate',
             'blockListener',
-            'onHandleHintMenuItemClick'
+            'onHandleHintMenuItemClick',
+            'onMouseEnter',
+            'onMouseLeave'
         ]);
         // Asset ID of the current sprite's current costume
         this.decodedAssetId = null;
@@ -97,21 +72,21 @@ class WsOverlay extends React.Component {
         this.props.vm.removeListener('targetsUpdate', this.onTargetsUpdate);
     }
 
-    onWorkspaceMetricsChange() {
-        const { hintState: { hints } } = this.props;
-
-        //disregard metrics change when workspace for custom block is shown
-        const isProcedureEditorOpened = this.workspace.id!==Blockly.getMainWorkspace().id;
-        if (hints.length <= 0||isProcedureEditorOpened) return; 
-        this.showHint();
-    }
-
     onWorkspaceUpdate(data) {
 
     }
 
     onTargetsUpdate() {
 
+    }
+
+    onWorkspaceMetricsChange() {
+        const { hintState: { hints } } = this.props;
+
+        //disregard metrics change when workspace for custom block is shown
+        const isProcedureEditorOpened = this.workspace.id !== Blockly.getMainWorkspace().id;
+        if (hints.length <= 0 || isProcedureEditorOpened) return;
+        this.showHint();
     }
 
     showHint() {
@@ -145,21 +120,24 @@ class WsOverlay extends React.Component {
     onHandleHintMenuItemClick(hintId, itemAction) {
         const { hintState: { hints } } = this.props;
         const hint = hints.find(h => h.hintId === hintId);
-        
-        switch(itemAction){
-            case CONTEXT_MENU_REFACTOR:{
+
+        switch (itemAction) {
+            case CONTEXT_MENU_REFACTOR: {
                 console.log('Apply refactoring for ' + hintId);
+                return;
             }
-            case CONTEXT_MENU_CODE_SHARE:{
+            case CONTEXT_MENU_CODE_SHARE: {
                 console.log('Post request to save procedure to library');
                 const block = this.workspace.getBlockById(hint.blockId);
                 const entry = getProcedureEntry(block);
                 console.log(entry);
+                return;
             }
         }
     }
 
     getTestHints() {
+        return;
         const blocksDb = Object.values(this.workspace.blockDB_);
         const badBlocks = blocksDb.filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
         const procedureDefs = blocksDb.filter(b => !b.isShadow_ && b.type === 'procedures_definition');
@@ -188,13 +166,85 @@ class WsOverlay extends React.Component {
         this.props.setHint(allHints);
     }
 
+    analyzeWhenUserBecomeInactive() {
+        const _vm = this.props.vm;
+        return Promise.resolve()
+            .then(() => getProgramXml(_vm))
+            .then(xml => sendAnalysisReq('projectId', 'all', xml, isProductionMode))
+            .then(json => {
+                console.log(json);
+                const analysisInfo = this.analysisInfo = json;
+                if (analysisInfo) {
+                    let targetName = _vm.editingTarget.getName();
+                    return this.analysisInfoToHints(analysisInfo);
+                }
+                return [];
+            }).then(hints => {
+                this.props.setHint(hints);
+                return true;
+            });
+    }
+
+    analysisInfoToHints(analysisInfo) {
+        console.log('TODO: map smells to hints', analysisInfo);
+        const hints = [];
+        for (let recordKey of Object.keys(analysisInfo['records'])) {
+            let record = analysisInfo['records'][recordKey];
+            let { type, smellId, target, fragments } = record.smell;
+            if (type === 'DuplicateCode') {
+                let f = fragments[0]; //use first fragment
+                let anchorBlockId = f.stmtIds[0]; //and first block of each fragment clone to place hint
+
+
+                const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT_TYPE);
+                const hint = {
+                    type: DUPLICATE_CODE_SMELL_HINT_TYPE,
+                    hintId: smellId,
+                    blockId: anchorBlockId,
+                    hintMenuItems
+                };
+                hints.push(hint);
+            }
+        }
+        return hints;
+    }
+
     blockListener(e) {
         if (this.workspace.isDragging()) return;
-        this.getTestHints();
         const { hintState: { hints } } = this.props;
-        if (hints.length > 0) {
-            this.showHint();
+        if (hints.length === 0) {
+            this.getTestHints();
+            this.analyzeWhenUserBecomeInactive().then(res => {
+                if (this.props.hintState.hints.length > 0) {
+                    this.showHint();
+                }
+            });
         }
+    }
+
+    onMouseEnter(hintId) {
+        const hint = this.props.hintState.hints.find(h => h.hintId === hintId);
+        const { type } = hint;
+        switch (type) {
+            case DUPLICATE_CODE_SMELL_HINT_TYPE:
+                highlightDuplicateBlocks(true, this.workspace, this.analysisInfo);
+                return;
+            default:
+                return;
+        }
+    }
+
+    onMouseLeave(hintId) {
+        const hint = this.props.hintState.hints.find(h => h.hintId === hintId);
+        const { type } = hint;
+        switch (type) {
+            case DUPLICATE_CODE_SMELL_HINT_TYPE:
+                highlightDuplicateBlocks(false, this.workspace, this.analysisInfo);
+                return;
+            default:
+                return;
+        }
+
     }
 
     render() {
@@ -205,6 +255,8 @@ class WsOverlay extends React.Component {
                     styles={this.state.styles}
                     hints={this.state.hintState}
                     onHandleHintMenuItemClick={this.onHandleHintMenuItemClick}
+                    onMouseEnter={this.onMouseEnter}
+                    onMouseLeave={this.onMouseLeave}
                     {...componentProps}
                 />
             </div>

@@ -35,7 +35,11 @@ const HintIcon = props => {
     const { className, iconSvg, iconStyles } = getIconSpec(type);
     return (
         <div style={styles}>
-            <ContextMenuTrigger id={hintId}>
+            <ContextMenuTrigger id={hintId}
+                attributes={{
+                    onMouseEnter: props.onMouseEnter,
+                    onMouseLeave: props.onMouseLeave
+                }}>
                 <img
                     className={classNames(
                         className, iconStyles
