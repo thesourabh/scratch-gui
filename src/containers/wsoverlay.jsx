@@ -12,6 +12,8 @@ import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from '../lib/hints/constants';
 import { getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
 import { sendAnalysisReq, getProgramXml } from '../lib/qtutor-server-api';
+import { applyTransformation } from '../lib/transform-api';
+import { addBlocksToWorkspace, simpleDuplicateXml } from '../lib/hints/hint-test-workspace-setup';
 
 const isProductionMode = true;
 const inactiveElapseThreshold = 3000;
@@ -56,6 +58,7 @@ class WsOverlay extends React.Component {
     componentDidMount() {
         this.workspace = ScratchBlocks.getMainWorkspace();
         this.attachVM();
+        console.log('todo: setup testing code');
     }
 
     attachVM() {
@@ -73,7 +76,10 @@ class WsOverlay extends React.Component {
     }
 
     onWorkspaceUpdate(data) {
-
+        if (!this.alreadySetup) {
+            addBlocksToWorkspace(this.workspace, simpleDuplicateXml);
+        }
+        this.alreadySetup = true;
     }
 
     onTargetsUpdate() {
@@ -124,6 +130,10 @@ class WsOverlay extends React.Component {
         switch (itemAction) {
             case CONTEXT_MENU_REFACTOR: {
                 console.log('Apply refactoring for ' + hintId);
+                applyTransformation(hintId, this.props.vm, this.workspace, this.analysisInfo);
+                //DELETE HINT
+                this.props.removeHint(hintId);
+                console.log(this.props.hintState.hints);
                 return;
             }
             case CONTEXT_MENU_CODE_SHARE: {
@@ -170,9 +180,8 @@ class WsOverlay extends React.Component {
         const _vm = this.props.vm;
         return Promise.resolve()
             .then(() => getProgramXml(_vm))
-            .then(xml => sendAnalysisReq('projectId', 'all', xml, isProductionMode))
+            .then(xml => sendAnalysisReq('projectId', 'duplicate_code', xml, isProductionMode))
             .then(json => {
-                console.log(json);
                 const analysisInfo = this.analysisInfo = json;
                 if (analysisInfo) {
                     let targetName = _vm.editingTarget.getName();
@@ -186,7 +195,7 @@ class WsOverlay extends React.Component {
     }
 
     analysisInfoToHints(analysisInfo) {
-        console.log('TODO: map smells to hints', analysisInfo);
+        if(analysisInfo.error) return [];
         const hints = [];
         for (let recordKey of Object.keys(analysisInfo['records'])) {
             let record = analysisInfo['records'][recordKey];
@@ -286,8 +295,11 @@ const mapDispatchToProps = dispatch => {
         onUpdateHint: (hintId, changes) => {
             dispatch(updateHint(hintId, changes));
         },
-        setUpdateStatus: isUpdating => dispatch(setUpdateStatus(isUpdating))
-        , putHint, removeHint
+        setUpdateStatus: isUpdating => dispatch(setUpdateStatus(isUpdating)),
+        removeHint: hintId => {
+            dispatch(removeHint(hintId))
+        }
+        , putHint
     }
 };
 

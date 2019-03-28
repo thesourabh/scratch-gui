@@ -25,7 +25,7 @@ const qualityTutorHOC = function (WrappedComponent) {
         }
 
         componentDidMount() {
-            this.initializeTutor();
+            // this.initializeTutor();
         }
 
         initializeTutor() {
@@ -43,7 +43,7 @@ const qualityTutorHOC = function (WrappedComponent) {
 
         blockListener(e) {
             const workspace = ScratchBlocks.getMainWorkspace(); // update workspace may change
-            this.analyzeWhenUserBecomeInactive();
+            // this.analyzeWhenUserBecomeInactive();
 
             if (e.type !== 'hint_click') {
                 return;

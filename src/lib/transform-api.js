@@ -35,14 +35,6 @@ const applyTransformation = function (hintId, vm, workspace, analysisInfo) {
             }
         });
     }
-    actionSeq.then(() => {
-        if (newBlock) {
-            newBlock.setHintText("Edit");
-            if (newBlock.hint) {
-                newBlock.hint.setVisible(true, "edit_procedure");
-            }
-        }
-    });
 }
 
 const switchTarget = function (vm, targetName) {
