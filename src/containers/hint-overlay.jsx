@@ -118,14 +118,9 @@ class HintOverlay extends React.Component {
             .then(xml => sendAnalysisReq('projectId', 'duplicate_code', xml, isProductionMode))
             .then(json => {
                 const analysisInfo = this.analysisInfo = json;
-                if (analysisInfo) {
-                    let targetName = _vm.editingTarget.getName();
-                    return analysisInfoToHints(analysisInfo);
-                }
-                return [];
+                return analysisInfo ? analysisInfoToHints(analysisInfo) : [];
             }).then(hints => {
                 this.props.setHint(hints);
-                return true;
             });
     }
 
