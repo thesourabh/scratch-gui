@@ -10,13 +10,12 @@ import ScratchBlocks from 'scratch-blocks';
 import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
 import WsOverlayComponent from '../components/wsoverlay/wsoverlay.jsx';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from '../lib/hints/constants';
-import { getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
+import { computeHintLocationStyles, getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
 import { sendAnalysisReq, getProgramXml } from '../lib/qtutor-server-api';
 import { applyTransformation } from '../lib/transform-api';
-import { addBlocksToWorkspace, simpleDuplicateXml } from '../lib/hints/hint-test-workspace-setup';
+import { addBlocksToWorkspace, simpleDuplicateXml, getTestHints } from '../lib/hints/hint-test-workspace-setup';
 
 const isProductionMode = true;
-const inactiveElapseThreshold = 3000;
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -26,6 +25,7 @@ const addFunctionListener = (object, property, callback) => {
         return result;
     };
 };
+
 
 class WsOverlay extends React.Component {
     constructor(props) {
@@ -58,7 +58,6 @@ class WsOverlay extends React.Component {
     componentDidMount() {
         this.workspace = ScratchBlocks.getMainWorkspace();
         this.attachVM();
-        console.log('todo: setup testing code');
     }
 
     attachVM() {
@@ -101,25 +100,7 @@ class WsOverlay extends React.Component {
     }
 
     updateHintTracking(hint) {
-        const block = this.workspace.getBlockById(hint.blockId);
-        if (!block) return;
-        const blockSvg = block.getSvgRoot();
-        const blockWidth = block.svgPath_.getBBox().width;
-        const hintOffset = 10;
-        const computeTop = (blockSvg, workspace) => blockSvg.getBoundingClientRect().y - workspace.svgBackground_.getBoundingClientRect().top;
-        const computeLeft = (blockSvg, workspace) => {
-            return blockSvg.getBoundingClientRect().x - workspace.svgBackground_.getBoundingClientRect().left + (blockWidth + hintOffset) * this.workspace.scale;
-        }
-
-        const changes = {
-            styles: {
-                position: 'absolute',
-                top: computeTop(blockSvg, this.workspace) + 'px',
-                left: computeLeft(blockSvg, this.workspace) + 'px'
-            }
-        };
-
-
+        const changes = computeHintLocationStyles(hint, this.workspace);
         this.props.onUpdateHint(hint.hintId, changes);
     }
 
@@ -144,36 +125,6 @@ class WsOverlay extends React.Component {
                 return;
             }
         }
-    }
-
-    getTestHints() {
-        return;
-        const blocksDb = Object.values(this.workspace.blockDB_);
-        const badBlocks = blocksDb.filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
-        const procedureDefs = blocksDb.filter(b => !b.isShadow_ && b.type === 'procedures_definition');
-        const smellHints = badBlocks.map(b => {
-            let oldHint = this.props.hintState.hints.find(h => b.id === h.blockId);
-            if (oldHint) return oldHint;
-            let blockId = b.id;
-            let hintId = blockId; //hintId is also block id;
-
-            const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT_TYPE);
-            return { type: DUPLICATE_CODE_SMELL_HINT_TYPE, hintId, blockId, hintMenuItems };
-        });
-
-        const shareableCodeHints = procedureDefs.map(b => {
-            let oldHint = this.props.hintState.hints.find(h => b.id === h.blockId);
-            if (oldHint) return oldHint;
-            let blockId = b.id;
-            let hintId = blockId; //hintId is also block id;
-
-            const hintMenuItems = buildHintContextMenu(SHAREABLE_CODE_HINT_TYPE);
-            return { type: SHAREABLE_CODE_HINT_TYPE, hintId, blockId, hintMenuItems };
-        });
-
-        const allHints = [...smellHints, ...shareableCodeHints];
-
-        this.props.setHint(allHints);
     }
 
     analyzeWhenUserBecomeInactive() {
@@ -222,7 +173,7 @@ class WsOverlay extends React.Component {
         if (this.workspace.isDragging()) return;
         const { hintState: { hints } } = this.props;
         if (hints.length === 0) {
-            this.getTestHints();
+            // getTestHints();
             this.analyzeWhenUserBecomeInactive().then(res => {
                 if (this.props.hintState.hints.length > 0) {
                     this.showHint();

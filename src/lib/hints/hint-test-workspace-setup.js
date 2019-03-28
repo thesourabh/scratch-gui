@@ -7,4 +7,34 @@ const addBlocksToWorkspace = function (workspace, rootBlockXml) {
     ScratchBlocks.Xml.domToBlock(dom, workspace);
 }
 
-export { addBlocksToWorkspace };
+const getTestHints = function(workspace, hintState) {
+    return;
+    const blocksDb = Object.values(workspace.blockDB_);
+    const badBlocks = blocksDb.filter(b => !b.isShadow_ && b.type === 'motion_movesteps');
+    const procedureDefs = blocksDb.filter(b => !b.isShadow_ && b.type === 'procedures_definition');
+    const smellHints = badBlocks.map(b => {
+        let oldHint = hintState.hints.find(h => b.id === h.blockId);
+        if (oldHint) return oldHint;
+        let blockId = b.id;
+        let hintId = blockId; //hintId is also block id;
+
+        const hintMenuItems = buildHintContextMenu(DUPLICATE_CODE_SMELL_HINT_TYPE);
+        return { type: DUPLICATE_CODE_SMELL_HINT_TYPE, hintId, blockId, hintMenuItems };
+    });
+
+    const shareableCodeHints = procedureDefs.map(b => {
+        let oldHint = hintState.hints.find(h => b.id === h.blockId);
+        if (oldHint) return oldHint;
+        let blockId = b.id;
+        let hintId = blockId; //hintId is also block id;
+
+        const hintMenuItems = buildHintContextMenu(SHAREABLE_CODE_HINT_TYPE);
+        return { type: SHAREABLE_CODE_HINT_TYPE, hintId, blockId, hintMenuItems };
+    });
+
+    const allHints = [...smellHints, ...shareableCodeHints];
+
+    return allHints;
+}
+
+export { addBlocksToWorkspace, getTestHints };

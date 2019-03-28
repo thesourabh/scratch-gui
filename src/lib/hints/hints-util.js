@@ -1,6 +1,32 @@
 import ScratchBlocks from 'scratch-blocks';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from './constants';
 
+/**
+ *  Use blockId specified in hint item as the location target for positioning hint icon
+ * @param {*} hint 
+ * @param {*} workspace 
+ */
+const computeHintLocationStyles = function (hint, workspace) {
+    const block = workspace.getBlockById(hint.blockId);
+    if (!block) return;
+    const blockSvg = block.getSvgRoot();
+    const blockWidth = block.svgPath_.getBBox().width;
+    const hintOffset = 10;
+    const computeTop = (blockSvg, workspace) => blockSvg.getBoundingClientRect().y - workspace.svgBackground_.getBoundingClientRect().top;
+    const computeLeft = (blockSvg, workspace) => {
+        return blockSvg.getBoundingClientRect().x - workspace.svgBackground_.getBoundingClientRect().left + (blockWidth + hintOffset) * workspace.scale;
+    }
+
+    const changes = {
+        styles: {
+            position: 'absolute',
+            top: computeTop(blockSvg, workspace) + 'px',
+            left: computeLeft(blockSvg, workspace) + 'px'
+        }
+    };
+    return changes;
+};
+
 
 const buildHintContextMenu = (type) => {
     switch (type) {
@@ -64,4 +90,4 @@ const formatXmlString = function (xmlStr) {
 }
 
 
-export { getProcedureEntry, formatXmlString, buildHintContextMenu, highlightDuplicateBlocks };
+export { getProcedureEntry, formatXmlString, buildHintContextMenu, highlightDuplicateBlocks, computeHintLocationStyles };
