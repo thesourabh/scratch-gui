@@ -15,6 +15,9 @@ const highlightDuplicateBlocks = function(state, workspace, analysisInfo) {
     }
 };
 
+
+
+
 const populateHintIcons = function(currentTargetName, workspace, analysisInfo) {
     for (let recordKey of Object.keys(analysisInfo['records'])) {
         let record = analysisInfo['records'][recordKey];
