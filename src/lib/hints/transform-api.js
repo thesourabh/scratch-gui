@@ -1,8 +1,8 @@
 import { IntlProvider } from 'react-intl';
 const intlProvider = new IntlProvider({ locale: 'en' }, {});
 const { intl } = intlProvider.getChildContext();
-import { emptySprite } from "./empty-assets";
-import sharedMessages from "./shared-messages";
+import { emptySprite } from "../empty-assets";
+import sharedMessages from "../shared-messages";
 const { loadCostume } = require('scratch-vm/src/import/load-costume');
 
 const applyTransformation = function (hintId, vm, workspace, analysisInfo) {
