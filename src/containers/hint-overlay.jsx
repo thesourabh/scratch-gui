@@ -7,13 +7,14 @@ import { connect } from 'react-redux';
 import VM from 'scratch-vm';
 import ScratchBlocks from 'scratch-blocks';
 
-import { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../reducers/hints-state';
+import { setHint, updateHint, putHint, putAllHints, removeHint, setUpdateStatus } from '../reducers/hints-state';
 import HintOverlayComponent from '../components/hint-overlay/hint-overlay.jsx';
 import { DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE, CONTEXT_MENU_REFACTOR, CONTEXT_MENU_INFO, CONTEXT_MENU_CODE_SHARE } from '../lib/hints/constants';
-import { computeHintLocationStyles, analysisInfoToHints, getProcedureEntry, buildHintContextMenu, highlightDuplicateBlocks } from '../lib/hints/hints-util';
+import { computeHintLocationStyles, analysisInfoToHints, getProcedureEntry, generateShareableCodeHints, highlightDuplicateBlocks } from '../lib/hints/hints-util';
 import { sendAnalysisReq, getProgramXml } from '../lib/hints/analysis-server-api';
 import { applyTransformation } from '../lib/hints/transform-api';
 import { addBlocksToWorkspace, testBlocks, getTestHints } from '../lib/hints/hint-test-workspace-setup';
+
 
 const isProductionMode = true;
 const isTesting = true;
@@ -66,6 +67,7 @@ class HintOverlay extends React.Component {
         if (isTesting && !this.alreadySetup) {
             addBlocksToWorkspace(this.workspace, testBlocks.simpleDuplicate);
             addBlocksToWorkspace(this.workspace, testBlocks.simpleDuplicate2);
+            addBlocksToWorkspace(this.workspace, testBlocks.simpleProcedure);
             this.workspace.cleanUp();
         }
         this.alreadySetup = true;
@@ -118,14 +120,9 @@ class HintOverlay extends React.Component {
             .then(xml => sendAnalysisReq('projectId', 'duplicate_code', xml, isProductionMode))
             .then(json => {
                 const analysisInfo = this.analysisInfo = json;
-                if (analysisInfo) {
-                    let targetName = _vm.editingTarget.getName();
-                    return analysisInfoToHints(analysisInfo);
-                }
-                return [];
+                return analysisInfo ? analysisInfoToHints(analysisInfo) : [];
             }).then(hints => {
                 this.props.setHint(hints);
-                return true;
             });
     }
 
@@ -133,11 +130,34 @@ class HintOverlay extends React.Component {
         if (this.workspace.isDragging()) return;
         console.log('TODO: logic to delay analyzing hints waiting for a good time');
 
-        this.analyzeAndGenerateHints().then(() => {
-            if (this.props.hintState.hints.length > 0) {
+        if (e.type === 'create' && e.xml.getAttribute('type') === 'procedures_definition') {
+            const hints = generateShareableCodeHints(this.workspace, this.props.hintState);
+            if (hints.length > 0) {
+                this.props.putAllHints(hints);
                 this.showHint();
             }
-        });
+        }
+        
+        if (e.type ==='delete') {
+            this.props.hintState.hints.filter(h=>!this.workspace.getBlockById(h.blockId)).forEach(h=>{
+                this.props.removeHint(h.hintId);
+            });
+        }
+
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+        }
+        this.timeout = setTimeout(() => {
+            this.analyzeAndGenerateHints().then(() => {
+                const hints = generateShareableCodeHints(this.workspace, this.props.hintState);
+                if (hints.length > 0) {
+                    this.props.putAllHints(hints);
+                }
+                if (this.props.hintState.hints.length > 0) {
+                    this.showHint();
+                }
+            });
+        }, 1000);
     }
 
     onMouseEnter(hintId) {
@@ -197,8 +217,9 @@ const mapDispatchToProps = dispatch => {
         setUpdateStatus: isUpdating => dispatch(setUpdateStatus(isUpdating)),
         removeHint: hintId => {
             dispatch(removeHint(hintId))
-        }
-        , putHint
+        },
+        putHint: hint => dispatch(putHint(hint)),
+        putAllHints: hints => dispatch(putAllHints(hints))
     }
 };
 
