@@ -1,4 +1,4 @@
-import hintStateReducer, { setHint, updateHint, putHint, removeHint, setUpdateStatus } from '../../../src/reducers/hints-state';
+import hintStateReducer, { setHint, updateHint, putHint, putAllHints, removeHint, setUpdateStatus } from '../../../src/reducers/hints-state';
 
 test("initialState", () => {
     let defaultState
@@ -44,7 +44,7 @@ test("put hint", () => {
     let state = {
         timestamp: 'date',
         hints: [{
-            id: 'id1',
+            hintId: 'id1',
             type: 'Extract Procedure',
             target: 'sprite1',
             visible: false
@@ -54,6 +54,27 @@ test("put hint", () => {
     const newState = hintStateReducer(state, putHint({ id: 'id2', type: 'Extract Procedure', target: 'Sprite3' }));
     expect(newState.hints.find(h => h.id === 'id2')).toBeDefined();
     expect(newState.hints.length).toBe(2);
+});
+
+test("put all hints", () => {
+    let state = {
+        timestamp: 'date',
+        hints: [{
+            hintId: 'id1',
+            type: 'Extract Procedure',
+            target: 'sprite1',
+            visible: true
+        }]
+    };
+
+    const newState = hintStateReducer(state, putAllHints([
+        { hintId: 'id2', type: 'Extract Procedure', target: 'Sprite3' }, 
+        { hintId: 'id1', type: 'Extract Procedure', target: 'Sprite3', visible: false },
+        { hintId: 'id3', type: 'Extract Procedure', target: 'Sprite4' }
+    ]));
+    expect(newState.hints.find(h => h.hintId === 'id2')).toBeDefined();
+    expect(newState.hints.find(h => h.hintId === 'id1').visible).toBe(false);
+    expect(newState.hints.length).toBe(3);
 });
 
 test("remove hint", () => {

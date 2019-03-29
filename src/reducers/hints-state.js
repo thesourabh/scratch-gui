@@ -2,6 +2,7 @@ const SET_HINTS = 'scratch-gui/hints-state/UPDATE_HINTS';
 const SORT_HINTS = 'scratch-gui/hints-state/SORT_HINTS';
 const UPDATE_HINT = 'UPDATE_HINT';
 const PUT_HINT = "PUT_HINT";
+const PUT_ALL_HINTS = "PUT_ALL_HINTS";
 const REMOVE_HINT = "REMOVE_HINT";
 const SET_UPDATE_STATUS = "SET_UPDATE_STATUS"
 
@@ -40,6 +41,21 @@ const reducer = function (state, action) {
                 hints: [...hints, action.hint],
                 isUpdating: true
             };
+        case PUT_ALL_HINTS:
+            let hintMap = hints.reduce((map, h) => { 
+                map[h.hintId] = h;
+                return map;
+            }, {});
+            hintMap = action.hints.reduce((map,h) =>{
+                map[h.hintId] = h;
+                return map;
+            }, hintMap);
+
+            return {
+                timestamp,
+                hints: Object.values(hintMap).concat(),
+                isUpdating: true
+            }
         case REMOVE_HINT:
             return {
                 timestamp,
@@ -47,7 +63,7 @@ const reducer = function (state, action) {
                 isUpdating: true
             }
         case SET_UPDATE_STATUS:
-            return Object.assign({},state, {isUpdating: action.isUpdating})
+            return Object.assign({}, state, { isUpdating: action.isUpdating })
         default:
             return state;
     }
@@ -78,6 +94,14 @@ const putHint = function (hint) {
     };
 }
 
+const putAllHints = function (hints) {
+    return {
+        type: PUT_ALL_HINTS,
+        hints
+    };
+}
+
+
 const removeHint = function (hintId) {
     return {
         type: REMOVE_HINT,
@@ -85,7 +109,7 @@ const removeHint = function (hintId) {
     }
 }
 
-const setUpdateStatus = function (isUpdating){
+const setUpdateStatus = function (isUpdating) {
     return {
         type: SET_UPDATE_STATUS,
         isUpdating
@@ -98,6 +122,7 @@ export {
     setHint,
     updateHint,
     putHint,
+    putAllHints,
     removeHint,
     setUpdateStatus
 };

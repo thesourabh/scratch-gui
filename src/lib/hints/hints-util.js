@@ -112,8 +112,26 @@ const formatXmlString = function (xmlStr) {
     return str;
 }
 
+const generateShareableCodeHints = function (workspace, hintState){
+    const blocksDb = Object.values(workspace.blockDB_);
+    const procedureDefs = blocksDb.filter(b => !b.isShadow_ && b.type === 'procedures_definition');
+    
+    const shareableCodeHints = procedureDefs.map(b => {
+        let oldHint = hintState.hints.find(h => b.id === h.blockId);
+        if (oldHint) return oldHint;
+        let blockId = b.id;
+        let hintId = blockId; //hintId is also block id;
+
+        const hintMenuItems = buildHintContextMenu(SHAREABLE_CODE_HINT_TYPE);
+        return { type: SHAREABLE_CODE_HINT_TYPE, hintId, blockId, hintMenuItems };
+    });
+
+    return shareableCodeHints;
+}
+
 
 export {
     getProcedureEntry, formatXmlString, buildHintContextMenu,
-    highlightDuplicateBlocks, computeHintLocationStyles, analysisInfoToHints
+    highlightDuplicateBlocks, computeHintLocationStyles, analysisInfoToHints, 
+    generateShareableCodeHints
 };
