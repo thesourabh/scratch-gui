@@ -15,7 +15,8 @@ import { sendAnalysisReq, getProgramXml } from '../lib/hints/analysis-server-api
 import { applyTransformation } from '../lib/hints/transform-api';
 import { addBlocksToWorkspace, testBlocks, getTestHints } from '../lib/hints/hint-test-workspace-setup';
 
-const isProductionMode = false;
+
+const isProductionMode = true;
 const isTesting = true;
 
 const addFunctionListener = (object, property, callback) => {
@@ -121,7 +122,7 @@ class HintOverlay extends React.Component {
                 const analysisInfo = this.analysisInfo = json;
                 return analysisInfo ? analysisInfoToHints(analysisInfo) : [];
             }).then(hints => {
-                this.props.putAllHints(hints);
+                this.props.setHint(hints);
             });
     }
 
@@ -130,12 +131,17 @@ class HintOverlay extends React.Component {
         console.log('TODO: logic to delay analyzing hints waiting for a good time');
 
         if (e.type === 'create' && e.xml.getAttribute('type') === 'procedures_definition') {
-            // e.blockId e.xml.getAttribute('type')
             const hints = generateShareableCodeHints(this.workspace, this.props.hintState);
             if (hints.length > 0) {
                 this.props.putAllHints(hints);
                 this.showHint();
             }
+        }
+        
+        if (e.type ==='delete') {
+            this.props.hintState.hints.filter(h=>!this.workspace.getBlockById(h.blockId)).forEach(h=>{
+                this.props.removeHint(h.hintId);
+            });
         }
 
         if (this.timeout) {
@@ -143,6 +149,10 @@ class HintOverlay extends React.Component {
         }
         this.timeout = setTimeout(() => {
             this.analyzeAndGenerateHints().then(() => {
+                const hints = generateShareableCodeHints(this.workspace, this.props.hintState);
+                if (hints.length > 0) {
+                    this.props.putAllHints(hints);
+                }
                 if (this.props.hintState.hints.length > 0) {
                     this.showHint();
                 }

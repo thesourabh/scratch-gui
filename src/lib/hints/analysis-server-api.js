@@ -1,6 +1,18 @@
 const localService = 'http://localhost:8080/analyze';
 const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
 
+var localServerAvailable;
+if (localServerAvailable === undefined) {
+    fetch("http://localhost:8080").then(res => {
+        if (res.status === 200) {
+            localServerAvailable = true
+        }
+    }, (err) => {
+        localServerAvailable = false;
+        console.warn("local analysis server not available...switch to remote analysis server one");
+    });
+}
+
 /**
  * 
  * @param {*} projectId 
@@ -8,8 +20,9 @@ const remoteService = 'https://quality-tutor-engine.appspot.com/analyze';
  * @param {*} xml 
  * @param {*} isProductionMode 
  */
-const sendAnalysisReq = function(projectId, analysisType, xml, isProductionMode) {
-    const url = isProductionMode? remoteService: localService;
+const sendAnalysisReq = function (projectId, analysisType, xml, isProductionMode) {
+    let url = isProductionMode ? remoteService : localService;
+    url = localServerAvailable ? localService : remoteService;
     return fetch(url, {
         method: "POST",
         mode: "cors",
@@ -23,7 +36,7 @@ const sendAnalysisReq = function(projectId, analysisType, xml, isProductionMode)
     }).then(res => res.json());
 }
 
-const getProgramXml = function(vm) {
+const getProgramXml = function (vm) {
     let targets = "";
     for (let i = 0; i < vm.runtime.targets.length; i++) {
         const currTarget = vm.runtime.targets[i];
@@ -45,7 +58,7 @@ const getProgramXml = function(vm) {
     str = str.replace(/\s+/g, ' '); // Keep only one space character
     str = str.replace(/>\s*/g, '>');  // Remove space after >
     str = str.replace(/\s*</g, '<');  // Remove space before <
-    
+
     return str;
 }
 
