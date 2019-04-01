@@ -43,7 +43,7 @@ const HintIcon = props => {
                 <img
                     className={classNames(
                         className, iconStyles
-                    )}
+                    ) + " hint_icon_" + hintId}
                     src={iconSvg}
                 />
             </ContextMenuTrigger>
