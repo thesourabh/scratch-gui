@@ -6,7 +6,7 @@ import {DUPLICATE_CODE_SMELL_HINT_TYPE, SHAREABLE_CODE_HINT_TYPE} from "../../li
 const getHintOverlayText = function (type) {
     switch (type) {
         case DUPLICATE_CODE_SMELL_HINT_TYPE:
-            return "Duplicate code found. This code can be extracted and optimized.";
+            return "Reuse the repeated code by creating procedure. Right click to see options.";
         case SHAREABLE_CODE_HINT_TYPE:
             return "Sharable code found here.";
         default:
