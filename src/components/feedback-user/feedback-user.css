@@ -1,0 +1,45 @@
+@import "../../css/colors.css";
+
+.feedback-icon {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    position: absolute;
+    right: 2.0em;
+    top: 5.5em;
+}
+
+.feedback-form {
+    width: 250px;
+}
+
+.feedback-question {
+    display: block;
+    font-size: 10pt;
+}
+
+.feedback-answer {
+    display: block;
+    width: 230px;
+    height: 70px;
+    padding: 5px;
+    margin: 10px 0;
+}
+
+.feedback-rating {
+    width: 10px;
+}
+
+.submit-button {
+    display: block;
+    background: hsla(215, 100%, 65%, 1);
+    border: hsla(215, 100%, 65%, 1);
+    color: white;
+    padding: 0.75rem 1rem;
+    margin-top: 10px;
+    margin-left: calc(100% - 96px);
+    border-radius: 0.25rem;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+}

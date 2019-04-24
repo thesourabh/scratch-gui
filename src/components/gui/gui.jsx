@@ -42,6 +42,7 @@ import addExtensionIcon from './icon--extensions.svg';
 import codeIcon from './icon--code.svg';
 import costumesIcon from './icon--costumes.svg';
 import soundsIcon from './icon--sounds.svg';
+import FeedbackUser from "../../containers/feedback-user.jsx";
 
 const messages = defineMessages({
     addExtension: {
@@ -293,6 +294,7 @@ const GUIComponent = props => {
                                         />
                                     </Tab>
                                 </TabList>
+                                <FeedbackUser/>
                                 <TabPanel className={tabClassNames.tabPanel}>
                                     <Box className={styles.blocksWrapper}>
                                         <Blocks
