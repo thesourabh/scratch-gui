@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import StarRatingComponent from 'react-star-ratings';
+import Quiz from 'react-quiz-component';
 
 import styles from './feedback-user.css';
 
@@ -36,8 +37,47 @@ const getHtmlElement = function (key, html, _classNames = "") {
     return <div key={key} dangerouslySetInnerHTML={{__html: html}} className={className}></div>
 };
 
+const getQuiz = function (key, quizJSON) {
+    return <Quiz key={key} quiz={quizJSON} showInstantFeedback={true} continueTillCorrect={true}/>
+};
+
 
 const FeedbackModal = props => {
+
+    const QUIZ_JSON = {
+        "quizTitle": "Title of the Quiz",
+        "quizSynopsis": "This is the synopsis of the quiz",
+        "questions": [
+            {
+                "question": "How do you correct the duplicated code problem?",
+                "questionType": "text",
+                "answers": [
+                    "Right click on hint and click Extract Procedure",
+                    "Don't do anything",
+                    "Type \"fix code\" in the terminal",
+                ],
+                "correctAnswer": "1",
+                "messageForCorrectAnswer": "Correct answer. Good job.",
+                "messageForIncorrectAnswer": "Incorrect answer. Please try again.",
+                "explanation": "Right clicking the hint icon brings up the options to fix the code automatically"
+            },
+            {
+                "question": "Guess what number was hardcoded here?",
+                "questionType": "text",
+                "answers": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5"
+                ],
+                "correctAnswer": "2",
+                "messageForCorrectAnswer": "Correct answer. Good job.",
+                "messageForIncorrectAnswer": "Incorrect answer. Please try again.",
+                "explanation": "2 was hardcoded here."
+            }
+        ]
+    };
 
     const FEEDBACK_JSON = [
         {'type': 'a_text', 'text': "How would you rate the code hints?"},
@@ -56,6 +96,10 @@ const FeedbackModal = props => {
             'starRatedColor': '#FFD700'
         },
         {
+            'type': 'quiz',
+            'quizJSON': QUIZ_JSON
+        },
+        {
             'type': 'html_element',
             'html': '<img src="https://zhenyong.github.io/react/img/logo.svg">'
         },
@@ -65,21 +109,6 @@ const FeedbackModal = props => {
             'onClick': props.submitFeedback
         },
     ];
-
-    // const {feedbackTextRef, rating, changeRating, submitFeedback} = props;
-    // return (
-    //     <div className={styles.feedbackForm}>
-    //         <a className={styles.feedbackQuestion}>How would you rate the code hints?</a>
-    //         <textarea placeholder="Enter your feedback" className={styles.feedbackAnswer} ref={feedbackTextRef}/>
-    //         <StarRatingComponent name="feedback_rating" className={styles.feedbackRating}
-    //                              rating={rating}
-    //                              changeRating={changeRating} starDimension="22px"
-    //                              starHoverColor="#FFD700" starRatedColor="#FFD700"
-    //         >
-    //         </StarRatingComponent>
-    //         <input type="button" className={styles.submitButton} value={"Submit"} onClick={submitFeedback}/>
-    //     </div>
-    // )
 
     let modalElements = [];
     for (let i = 0; i < FEEDBACK_JSON.length; i++) {
@@ -100,6 +129,9 @@ const FeedbackModal = props => {
                 break;
             case 'html_element':
                 newElem = getHtmlElement(i, obj.html);
+                break;
+            case 'quiz':
+                newElem = getQuiz(i, obj.quizJSON);
                 break;
         }
         modalElements.push(newElem);

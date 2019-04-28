@@ -55,7 +55,6 @@ class FeedbackUser extends React.Component {
                 if (user) {
                     newItem['user_id'] = user.id;
                 }
-                console.log(user);
                 feedbackCollection.insertOne(newItem)
                     .then(result => console.log(`Successfully inserted item with _id: ${result.insertedId}`))
                     .catch(err => console.error(`Failed to insert item: ${err}`));
