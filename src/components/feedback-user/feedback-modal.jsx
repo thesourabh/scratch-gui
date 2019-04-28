@@ -6,18 +6,18 @@ import styles from './feedback-user.css';
 
 
 const getTitle = function (key, titleText, _classNames = "") {
-    let className = styles.feedbackQuestion + _classNames;
+    let className = styles.feedbackQuestion + " " + _classNames;
     return <a className={className} key={key}>{titleText}</a>;
 };
 
 const getTextArea = function (key, placeholder, ref, _classNames = "") {
-    let className = styles.feedbackAnswer + _classNames;
+    let className = styles.feedbackAnswer + " " + _classNames;
     return <textarea placeholder={placeholder} key={key}
                      className={className} ref={ref}/>
 };
 
 const getStarRating = function (key, rating, onChangeRating, starDimension, starHoverColor, starRatedColor, _classNames = "") {
-    let className = styles.feedbackRating + _classNames;
+    let className = styles.feedbackRating + " " + _classNames;
     return <StarRatingComponent className={className} key={key}
                                 rating={rating}
                                 changeRating={onChangeRating} starDimension={starDimension}
@@ -27,8 +27,13 @@ const getStarRating = function (key, rating, onChangeRating, starDimension, star
 };
 
 const getButton = function (key, buttonText, onClick, _classNames = "") {
-    let className = styles.submitButton + _classNames;
+    let className = styles.submitButton + " " + _classNames;
     return <input type="button" key={key} className={className} value={buttonText} onClick={onClick}/>
+};
+
+const getHtmlElement = function (key, html, _classNames = "") {
+    let className = styles.feedbackHtml + " " + _classNames;
+    return <div key={key} dangerouslySetInnerHTML={{__html: html}} className={className}></div>
 };
 
 
@@ -49,6 +54,10 @@ const FeedbackModal = props => {
             'starDimension': '22px',
             'starHoverColor': '#FFD700',
             'starRatedColor': '#FFD700'
+        },
+        {
+            'type': 'html_element',
+            'html': '<img src="https://zhenyong.github.io/react/img/logo.svg">'
         },
         {
             'type': 'button',
@@ -88,6 +97,9 @@ const FeedbackModal = props => {
                 break;
             case 'button':
                 newElem = getButton(i, obj.buttonText, obj.onClick);
+                break;
+            case 'html_element':
+                newElem = getHtmlElement(i, obj.html);
                 break;
         }
         modalElements.push(newElem);

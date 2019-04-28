@@ -30,6 +30,10 @@
     width: 10px;
 }
 
+.feedback-html {
+    overflow: hidden;
+}
+
 .submit-button {
     display: block;
     background: hsla(215, 100%, 65%, 1);
