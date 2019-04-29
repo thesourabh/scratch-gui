@@ -4,6 +4,7 @@ import StarRatingComponent from 'react-star-ratings';
 import Quiz from 'react-quiz-component';
 
 import styles from './feedback-user.css';
+import '!style-loader!css-loader!react-quiz-component/lib/styles.css';
 
 
 const getTitle = function (key, titleText, _classNames = "") {
@@ -49,7 +50,7 @@ const FeedbackModal = props => {
         "quizSynopsis": "This is the synopsis of the quiz",
         "questions": [
             {
-                "question": "How do you correct the duplicated code problem?",
+                "question": "How do you correct the duplicated code problem? <img src=\"https://zhenyong.github.io/react/img/logo.svg\">",
                 "questionType": "text",
                 "answers": [
                     "Right click on hint and click Extract Procedure",
@@ -101,7 +102,7 @@ const FeedbackModal = props => {
         },
         {
             'type': 'html_element',
-            'html': '<img src="https://zhenyong.github.io/react/img/logo.svg">'
+            'html': '<img src="https://zhenyong.github.io/react/img/logo.svg" width="25px" height="25px">'
         },
         {
             'type': 'button',
@@ -109,10 +110,11 @@ const FeedbackModal = props => {
             'onClick': props.submitFeedback
         },
     ];
-
+    
+    let MODAL_JSON = FEEDBACK_JSON;
     let modalElements = [];
-    for (let i = 0; i < FEEDBACK_JSON.length; i++) {
-        let obj = FEEDBACK_JSON[i];
+    for (let i = 0; i < MODAL_JSON.length; i++) {
+        let obj = MODAL_JSON[i];
         let newElem = null;
         switch (obj.type) {
             case 'a_text':
